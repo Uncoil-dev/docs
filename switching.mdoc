@@ -1,0 +1,44 @@
+---
+slug: switching
+title: Move to Uncoil from another tool
+description: Run Uncoil next to Langfuse, LangSmith, Helicone or plain OpenTelemetry, check the results match, then switch the old tool off.
+section: Connect
+order: 9
+---
+
+# Move to Uncoil from another tool
+
+You do not need a big migration. Send traces to Uncoil while your current tool keeps running, compare a week of runs, then remove the old tool.
+
+## The plan
+
+1. Create an Uncoil project and copy its API key.
+2. Add the Uncoil SDK ([TypeScript](/docs/typescript) or [Python](/docs/python)), or point an OpenTelemetry exporter at Uncoil.
+3. Run your agent. Check that each run shows its model calls, tool calls, cost and errors.
+4. After a week of matching results, turn the old tool off.
+
+Uncoil receives traces after the work is done, so it is never in your request path.
+
+## If you already use OpenTelemetry
+
+Send OTLP HTTP JSON to `https://eu.cloud.uncoil.dev/api/otel` with the project API key. Most setups only change the endpoint and the key. See [OpenTelemetry and integrations](/docs/integrations).
+
+## Coming from Langfuse
+
+Langfuse also takes OpenTelemetry over HTTP, so if you export OTLP today, change the endpoint and key and keep the rest. Export anything you need from Langfuse before you turn it off, because history does not move across.
+
+## Coming from LangSmith
+
+Replace the LangSmith tracing variables with an OpenTelemetry exporter that points at Uncoil. LangChain and LangGraph code stays as it is; only the destination of the traces changes. Run both side by side for a week, then turn LangSmith off.
+
+## Coming from Helicone
+
+Add the Uncoil SDK or an OpenTelemetry exporter to your agent code. If you use Helicone as a gateway for routing and fallbacks, keep it and remove only the logging you no longer need. Check that tool calls now show inside each run.
+
+## What does not move
+
+Uncoil starts with new traces. Keep your old tool read-only for as long as you want the history.
+
+## Check your bill first
+
+The [tracing bill calculator](https://www.uncoil.dev/tools/ai-observability-cost-calculator) compares the monthly cost on each tool for your own traffic. The [Switch to Uncoil](https://www.uncoil.dev/switch) page has the same steps with comparison links.
