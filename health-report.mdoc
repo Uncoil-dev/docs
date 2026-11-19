@@ -1,0 +1,56 @@
+---
+slug: health-report
+title: Order an agent health report
+description: Send a week of runs and get a one-off report on cost, errors and slow steps, with fixes ranked by money saved.
+section: Operate
+order: 14
+---
+
+# Order an agent health report
+
+The agent health report is a one-off report on how your agents behave. You send a file of steps, and Uncoil adds up cost, errors and speed and ranks the fixes. You pay once. You do not need an account or a project.
+
+Order it at [uncoil.dev/health-report](/health-report). See [a sample report](/health-report/sample) first if you want to know what you get.
+
+## What you need
+
+A week or more of steps from your agents, in one file. JSON, JSON lines and CSV all work. Each row is one step, with the same field names the SDKs send:
+
+| Field | Required | Used for |
+| --- | --- | --- |
+| `runId` | Yes | Grouping steps into runs |
+| `createdAt` | Yes | Timing and the daily trend |
+| `latencyMs` | No | Slow steps and run time |
+| `costUsd` | No | Spend by model, agent and run |
+| `modelId`, `toolName` | No | Naming each step |
+| `inputTokens`, `outputTokens` | No | Token totals and short-answer checks |
+| `traceName` | No | Spend by agent |
+| `retryCount` | No | Retry cost |
+| `errorType`, `errorMessage`, `timedOut` | No | Failures and timeouts |
+
+CSV files use the same names as column headers. Snake case such as `run_id` and `latency_ms` is accepted. A file needs at least 10 readable steps and can hold up to 50,000.
+
+Prompts and answers are not needed. Leave them out of the file.
+
+## What the report contains
+
+- Runs, failure rate, total spend, average cost per run and the slowest 5% of runs.
+- Up to six fixes, ranked by severity and estimated monthly saving. Estimates come only from your own numbers.
+- Spend by model and by agent, and the five most expensive runs.
+- Errors grouped by cause, with the step that fails.
+- Typical and worst-case time for each step.
+- A day-by-day view of spend and failures.
+
+A run counts as failed when its last step ended in an error. A run that hit an error but recovered is counted separately.
+
+## Privacy
+
+Uncoil reads the file once and stores only the totals shown in the report. Prompt and answer text is not kept. The report opens at a private link with a long random address. Anyone with the link can read it, so share it with care. Use **Save as PDF** on the report to keep a copy.
+
+## Upload again
+
+The payment page accepts a new upload for the same payment. A new upload replaces the report and keeps the same link. If the file cannot be read, the page shows what is wrong.
+
+## Want it live
+
+Send traces to Uncoil and the same numbers update as they arrive, with alerts when cost or errors jump. See [quickstart](/docs/quickstart).
