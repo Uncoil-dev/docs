@@ -1,0 +1,126 @@
+---
+slug: redaction
+title: Redact sensitive data in traces
+description: Understand how the SDKs and Uncoil ingestion mask emails, phone numbers, card numbers, API keys, and SSNs before traces are stored.
+section: Operate
+order: 18.5
+---
+
+# Redact sensitive data in traces
+
+Prompts, answers, attachments, and metadata often contain personal details. Uncoil masks common sensitive values in two places: inside the SDK before a span leaves your application, and on the Uncoil ingestion endpoints before a span is stored. This page describes what each layer does and what it does not do.
+
+Redaction is pattern based. It catches common formats, not every possible secret or personal detail, so keep sensitive data out of prompts where you can.
+
+## Two layers
+
+| Layer | Where it runs | Controlled by |
+| --- | --- | --- |
+| SDK | In your application, before sending | The `redact` option on the client |
+| Ingestion | On Uncoil, before storage | Project settings: a redaction switch and a rule list |
+
+Both layers can run on the same span. A value masked by the SDK is already replaced when it arrives, so the ingestion layer has nothing left to match.
+
+## Ingestion rules
+
+Each project has a redaction switch, which is on unless it is explicitly turned off, and a list of rules. The project settings page shows the five rules as toggles.
+
+| Rule | Matches | Replaced with |
+| --- | --- | --- |
+| `email` | Email addresses | `[REDACTED_EMAIL]` |
+| `phone` | Phone-number-like digit runs, with optional `+`, spaces, dots, dashes, or parentheses | `[REDACTED_PHONE]` |
+| `credit_card` | Runs of 13 to 19 digits, optionally separated by spaces or dashes | `[REDACTED_CARD]` |
+| `api_key` | Text starting with `sk`, `pk`, `uncoil_sk_live`, or `api_key` / `api-key` / `apikey`, followed by at least eight letters, digits, or `_ - .` | `[REDACTED_API_KEY]` |
+| `ssn` | Nine digits written as `123-45-6789` | `[REDACTED_SSN]` |
+
+Matching ignores letter case for `email` and `api_key`.
+
+### Defaults and fallback
+
+- If a project has no saved rules, or an empty list, all five rules apply.
+- Unknown rule names are ignored. If none of the names in a list are known, all five rules apply.
+- You cannot end up with redaction enabled and zero active rules. To send values unmasked, turn the project redaction switch off.
+
+Rules run in order, one after another, so a value can be changed by an earlier rule before a later one is checked. Broad rules such as `phone` and `credit_card` can also match long numeric values such as identifiers, so review a few traces after changing the rule list.
+
+### What is redacted
+
+When the switch is on, ingestion applies the active rules to a span's input, output, and attachments, and to its metadata.
+
+- Input, output, and attachments are converted to text first. A non-string value is serialized as JSON, then the rules run over the whole string.
+- Metadata keeps its structure. String values are redacted, arrays are walked entry by entry, and nested objects are walked recursively. Numbers, booleans, and null are left alone.
+- Object keys are not redacted. Only values are.
+
+Placeholder example, shown before and after:
+
+```text
+Before: Contact jane@example.invalid or +00 000 000 0000 about the order
+After:  Contact [REDACTED_EMAIL] or [REDACTED_PHONE] about the order
+```
+
+### Nested depth limit
+
+Metadata is processed up to a depth of 8 levels of nesting. Beyond that, the remaining nested object is copied as it is, without redaction. Keep metadata shallow, and put free text in a span input or output, which is always redacted as a whole string.
+
+## SDK redaction
+
+The TypeScript and Python SDKs have their own redaction step that runs before a span is sent. It applies to span inputs and outputs.
+
+Always on, whatever you configure:
+
+- Common secret shapes are masked: bearer tokens, provider-style secret keys, and three-part JSON web tokens (TypeScript SDK).
+- Values after fields named `api_key`, `password`, `secret`, or `token` are masked when written as `name: value` or `name=value` (TypeScript SDK).
+- Inputs and outputs are capped in length, and longer text is truncated with a note.
+
+On by default, and switched off with `pii: false`:
+
+- Email addresses, phone numbers, and card numbers. The card check also requires the digits to pass a Luhn check, so long identifiers and timestamps are not masked as cards.
+
+Optional extras:
+
+| Option | Effect |
+| --- | --- |
+| `pii` | Set to `false` to send emails, phone numbers, and card numbers unmasked |
+| `patterns` | Extra patterns to mask. A string is matched as plain text; a regular expression is used as given |
+| `fn` | Your own last-step cleaner. Its return value is what gets sent |
+| `replacement` | The replacement text for masked values. Defaults to `[redacted]` |
+
+```ts
+import { UncoilClient } from "@uncoil.dev/sdk";
+
+const uncoil = new UncoilClient({
+  apiKey: process.env.UNCOIL_API_KEY,
+  redact: {
+    patterns: ["order-12345", /ticket-\d+/],
+    replacement: "[hidden]",
+  },
+});
+```
+
+```python
+from uncoil import UncoilClient
+
+uncoil = UncoilClient(
+    redact={
+        "patterns": ["order-12345"],
+        "replacement": "[hidden]",
+    },
+)
+```
+
+SDK redaction and ingestion redaction use different patterns and placeholders. Do not rely on one layer's exact matching to mirror the other.
+
+## Limits
+
+- Pattern matching can miss unusual formats and can mask harmless text that looks like a number.
+- Names, addresses, and free-form personal details are not detected by any built-in rule.
+- Redaction applies to spans sent to Uncoil. It does not clean your own application logs.
+
+## Checklist
+
+1. Leave the project redaction switch on and all five rules selected unless you have a specific reason.
+2. Add `patterns` or `fn` in the SDK for identifiers that are specific to your product.
+3. Keep metadata shallow, within 8 levels.
+4. Send a test trace with placeholder values and confirm how it appears in the trace viewer.
+
+See [trace anatomy](/docs/trace-anatomy) for what a span carries, and [TypeScript](/docs/typescript) or [Python](/docs/python) for client setup.
