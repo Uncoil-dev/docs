@@ -17,11 +17,33 @@ Most first-trace problems come down to the API key, the region, or where the run
 - **The key and region disagree.** A key belongs to the EU or US region. If the configured region does not match, the client refuses to start with `Uncoil API key region mismatch`. Set `region` (or the `UNCOIL_REGION` variable) to the region your project lives in. Keys without a region marker are treated as EU.
 - **Nothing ran inside a traced function.** `traceAgent` (or `@trace_agent`) creates the run. Calls made outside one are recorded as separate standalone roots, so look for many one-step traces instead of one run.
 - **A request failed quietly.** Telemetry never throws into your agent, so failures show up as a `Failed to ingest span` warning in your logs. Check the log output of the process that runs the agent.
+- **The endpoint is wrong.** Unless you set `host` (or `UNCOIL_HOST`), the SDK sends spans to `/api/ingest` on the host for your region. A `host` that is not a full web address fails with `bad_host`. A custom host that is not an Uncoil region host skips the region check, so confirm it by hand. If the process cannot reach the host you will see `Could not reach Uncoil` in your logs; check your network, firewall and proxy.
+- **The key was rejected.** A 401 is reported as `Uncoil rejected the API key`, and a 403 as `This API key is not allowed to send data`. Check the key, its region, and that it belongs to the project you are looking at.
+- **The process exited too early.** The TypeScript SDK sends each span in the background without waiting, and it has no flush method. In a short script or serverless handler, the process can end before the last requests finish, so keep it alive until the work has settled. The Python SDK sends each span before `ingest` returns, so this mostly affects TypeScript.
+- **The run was sampled out.** See the next section.
 
 ## The run is there, but steps are missing or flat
 
 - Steps must be started inside the traced function, using `span`, `observe`, or a wrapped provider client. Work started in a detached process or an unrelated queue consumer has no parent.
 - If steps appear but not nested, make sure the work is awaited inside the `span` callback (or inside the `with` block in Python). A step ends when its function settles.
+
+## Runs are missing because of sampling
+
+If you set `sampleRate` (`sample_rate` in Python) below 1, only that share of runs is recorded. The choice is made per run, so a kept run is complete and a dropped run leaves nothing behind. Spans that report an error are still kept unless you set `keepErrors` (`keep_errors`) to `false`. A value outside 0 to 1 throws `bad_sample_rate`. Set it back to 1 while you debug.
+
+## Too much data (rate limits)
+
+When Uncoil answers 429, the SDK reports `Uncoil is receiving too much data from this app`, and the spans sent at that moment are lost. Lower the volume with `sampleRate` (for example 0.2), or upgrade your plan. Each kind of problem is reported once per client. Pass `onError` to receive these problems in your own code instead of a console warning.
+
+## Verify ingestion
+
+Run the setup check from the TypeScript SDK package:
+
+```bash
+npx @uncoil.dev/sdk doctor
+```
+
+It checks the key, the region and host, and the network, then sends one test trace. It exits with code 1 if a check fails, and prints the run id of the test trace when it is accepted, which you can search for in your dashboard. Use `--no-send` to skip the test trace, or `--region` and `--host` to override the defaults. For a quick local check, set `onError` so that a rejected or unreachable request is visible.
 
 ## Cost shows as zero
 
