@@ -25,9 +25,15 @@ Every plan includes tracing, the cost view, and the trace viewer. Higher plans a
 
 When a Free project reaches its monthly or daily span limit, Uncoil stops saving new data until the limit resets. Data that is already saved stays. Monthly counts reset at the start of each UTC month, and daily counts reset at midnight UTC.
 
+The refused request gets a `429` response. The body names the limit (`plan_limit_reached` or `daily_limit_reached`), says when to retry, and includes an `upgradeUrl` that points to the plans.
+
 Pro and Team projects get a 10% buffer above the included spans before new data is refused. You are never billed extra for going over.
 
 Very large spans on the Free plan are shortened instead of refused, so a long prompt still appears in the trace, just trimmed.
+
+## Before you reach the limit
+
+The dashboard shows a notice when a project has used 80% of its monthly spans. A Free project owner also gets one email at 80%, once a month, so the limit never comes as a surprise.
 
 ## Alerts, Ask AI, and history
 
