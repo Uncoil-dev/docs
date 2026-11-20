@@ -1,0 +1,104 @@
+---
+slug: tags-and-metadata
+title: Tags and metadata
+description: How to label runs with tags, metadata, sessions, users, environments and releases, and what the ingest endpoint accepts.
+section: Observe
+order: 10
+contentType: reference
+---
+
+# Tags and metadata
+
+Labels are what let you answer questions such as "which runs belong to this customer?" or "did this release get slower?". Uncoil gives every span a small set of typed context fields, plus a free-form `metadata` object for everything else. This page lists each field, how to set it in both SDKs, and what the ingest endpoint checks.
+
+## The fields
+
+| Field | Type | Use it for |
+| --- | --- | --- |
+| `tags` | array of strings | Short labels you filter on, such as a feature or experiment name. |
+| `metadata` | object | Structured detail about one span that does not have its own field. |
+| `sessionId` | string | Grouping runs that belong to one conversation or workflow. |
+| `endUserId` | string | Finding every run for one customer or account. |
+| `environment` | string | Separating, for example, production from staging. |
+| `release` | string | Comparing runs across versions of your agent. |
+| `deploymentId` | string | Tying a run to a specific deployment. |
+
+All of them are optional. See [What is in a trace](/docs/trace-anatomy) for how these sit next to the other span fields.
+
+## Set them once on the client or wrapper
+
+Set context that is the same for every run when you configure the SDK. In TypeScript, pass the options to `traceAgent`:
+
+```ts
+import { traceAgent } from "@uncoil.dev/sdk";
+
+const runAgent = traceAgent(async (question: string) => callModel(question), {
+  name: "support-agent",
+  environment: "production",
+  release: "2026-10-15",
+  tags: ["support", "beta"],
+});
+```
+
+In Python, use the same fields in snake case on the decorator:
+
+```python
+from uncoil import trace_agent
+
+@trace_agent(name="support-agent", environment="production", release="2026-10-15", tags=["support", "beta"])
+def run_agent(question: str):
+    ...
+```
+
+The Python client also accepts `session_id`, `end_user_id` and `deployment_id`. The TypeScript client accepts `sessionId`, `endUserId` and `deploymentId`.
+
+## Override per span
+
+A value set on an individual span wins over the client default. If a span does not set a field, the client value is used. In Python, the `llm_call` and `tool_call` helpers take `session_id`, `end_user_id`, `environment`, `release`, `tags` and `metadata` directly, so you can set them for a single call.
+
+Because a tags array on a span replaces the client default instead of merging with it, repeat any default tags you still want when you set tags on one span.
+
+## Metadata on steps
+
+On a step, call `set` with the values you want to keep. Known keys such as `model`, `inputTokens`, `outputTokens` and `costUsd` are recorded in their own fields. Any other key is stored as metadata on that span.
+
+```ts
+await span("lookup-order", async (step) => {
+  const order = await findOrder(orderId);
+  step.set({ cacheHit: true, rows: order.items.length });
+  return order;
+}, { type: "tool" });
+```
+
+```python
+with span("lookup-order", type="tool") as step:
+    order = find_order(order_id)
+    step.set(cache_hit=True, rows=len(order["items"]))
+```
+
+You can also pass an initial `metadata` object when you create the step. Metadata must be a JSON object, not an array or a single value. Do not put secrets or personal data in metadata; see [Redaction](/docs/redaction) for the rules Uncoil applies before data is stored.
+
+## Naming conventions
+
+The SDKs do not enforce a naming scheme, so pick one and keep it consistent. These conventions make filters reliable:
+
+- Use stable, lowercase tag names such as `checkout` or `summarizer`. Avoid values that change on every run.
+- Keep tags for categories, and put identifiers, counts and flags in `metadata`.
+- Use an opaque identifier for `endUserId`, such as your internal account id, rather than an email address or name.
+- Use one `sessionId` for the whole conversation, and reuse it across every run in that conversation.
+- Keep `environment` to a small fixed set of names, for example `production` and `staging`.
+- Use a sortable value for `release`, such as a version number or a date, so releases line up in order.
+
+## What the ingest endpoint checks
+
+Each span is validated when it is sent to Uncoil. A span is rejected with a clear error message when:
+
+- `sessionId`, `endUserId`, `environment`, `release` or `traceName` is present and is not a string.
+- `tags` is present and is not an array of strings.
+- `metadata` is present and is not an object.
+
+If a field is not set, Uncoil stores an empty string for the string fields and an empty array for tags. A request body can be at most 1 MB, and spans on the Free plan are limited to 256 KB. The SDK reports a rejected span through its error handler instead of breaking your app. Uncoil does not currently document a maximum length for individual tag or field values, so keep them short.
+
+## Where they show up
+
+Use these fields to filter runs in the dashboard. Start with [Trace and inspect agent runs](/docs/observability) for the dashboard workflow.
