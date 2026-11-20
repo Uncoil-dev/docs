@@ -1,0 +1,38 @@
+---
+slug: plans-and-limits
+title: Plans and limits
+description: What each Uncoil plan includes, the limits on the Free plan, and what happens when you reach one.
+section: Operate
+order: 14
+---
+
+# Plans and limits
+
+Every plan includes tracing, the cost view, and the trace viewer. Higher plans add more volume, longer history, and extra features.
+
+| | Free | Pro | Team |
+| --- | --- | --- | --- |
+| Spans per month | 10,000 | 500,000 | 2,000,000 |
+| Spans per day | 2,000 | No daily cap | No daily cap |
+| Projects | 2 per account | 3 | Unlimited |
+| Members | 1 | 5 | 20 |
+| History | 7 days | 30 days | 90 days |
+| Requests per minute (per project) | 300 | Plan default | Plan default |
+| Alerts (email and Slack) | Not included | Included | Included |
+| Ask AI | Ready-made questions | Any question | Any question |
+
+## What happens at a limit
+
+When a Free project reaches its monthly or daily span limit, Uncoil stops saving new data until the limit resets. Data that is already saved stays. Monthly counts reset at the start of each UTC month, and daily counts reset at midnight UTC.
+
+Pro and Team projects get a 10% buffer above the included spans before new data is refused. You are never billed extra for going over.
+
+Very large spans on the Free plan are shortened instead of refused, so a long prompt still appears in the trace, just trimmed.
+
+## Alerts, Ask AI, and history
+
+- **Alerts.** Creating alert rules is part of Pro and Team. Rules that already exist on a Free project keep running.
+- **Ask AI.** On Free, the four ready-made questions in the trace viewer work as usual. Typing your own question needs Pro or Team.
+- **History.** Date ranges longer than the plan's history are not available. Free shows up to 7 days.
+
+See the [pricing page](https://www.uncoil.dev/pricing) for current prices.
