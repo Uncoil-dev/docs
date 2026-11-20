@@ -1,0 +1,85 @@
+---
+slug: alerts
+title: Set up alert rules
+description: Get told when failures, cost, latency, or silence cross a limit you choose.
+section: Operate
+order: 18.7
+---
+
+# Set up alert rules
+
+Alert rules watch the runs in a project and tell you when a number crosses a limit. Create them from the Alerts page of a project in the dashboard. Each rule checks one metric over a time window and notifies the destinations you pick.
+
+Uncoil checks every enabled rule on a schedule, about every five minutes. A rule opens an alert the first time it goes over its limit and closes it when the value drops back under. It does not send a new message on every check while it stays over.
+
+## Choose a metric
+
+Every rule uses one of four metrics. A rule fires when the value is greater than its limit.
+
+| Metric | What it measures | Limit is |
+| --- | --- | --- |
+| Failed runs | Runs with a failed status inside the window | A count |
+| Cost | Total cost of runs inside the window | US dollars |
+| Slow runs (p95) | The duration that 95 percent of runs finish within, inside the window | Seconds |
+| Minutes without runs | Time since the most recent run | Minutes |
+
+Cost and duration come from the data on your runs, so they are only as accurate as what you [record on spans](/docs/costs).
+
+## Create a rule
+
+A rule has these settings:
+
+- **Name.** Up to 80 characters. It appears in notifications and history.
+- **Metric and limit.** The limit must be zero or more.
+- **Window.** Between 5 minutes and 1 day (1440 minutes). Values outside that range are adjusted to fit.
+- **Environment.** Optional. When set, only runs from that environment are counted.
+- **Destinations.** At least one of email, Slack, or a webhook.
+
+The new-rule form previews what the rule would have done over the last seven days, so you can tune the limit before saving. A project can have up to 25 rules.
+
+## Choose where alerts go
+
+| Destination | Details |
+| --- | --- |
+| Email | Up to 10 addresses per rule. Duplicates are removed and each address is validated. |
+| Slack | A Slack incoming webhook link. It must be an https link on `hooks.slack.com`. |
+| Webhook | Any public https address. Local, private, and credential-bearing addresses are refused. |
+
+Slack and webhook destinations also receive a message when the rule recovers. Email is sent when a rule fires.
+
+Use **Send a test** on the form or on a saved rule to post a clearly labelled test message and see whether it was delivered. The dashboard shows the latest delivery result for each Slack and webhook destination.
+
+### Webhook payload
+
+A webhook receives a JSON `POST` with these fields:
+
+```json
+{
+  "event": "alert.fired",
+  "rule": { "id": "...", "name": "Failures", "metric": "failed_runs", "threshold": 5 },
+  "value": 7,
+  "message": "Failures: 7 failed runs in the last hour (limit 5).",
+  "projectId": "...",
+  "dashboardUrl": "https://www.uncoil.dev/dashboard/.../alerts",
+  "firedAt": "2026-01-01T00:00:00.000Z"
+}
+```
+
+The `event` is `alert.fired`, `alert.resolved`, or `alert.test`. Requests time out after 10 seconds and redirects are not followed.
+
+## Manage rules
+
+- **Enable or disable.** Disabling a rule stops checks and resets it to normal.
+- **Snooze.** Mute a rule for up to 7 days. It keeps checking and recording alerts but sends nothing. Wake it early at any time.
+- **Quiet hours.** One daily window per project, with a start time, end time, and time zone. Alerts are still recorded, but nothing is sent during the window.
+- **Tags.** Up to 8 short labels per rule, lowercase, up to 24 characters each, for grouping and filtering.
+- **History.** Every alert is listed with its rule, message, time, and whether it is active or resolved. Alerts held back by a snooze or quiet hours are marked as such.
+
+## Check your setup
+
+1. Create a rule with a low limit and a short window.
+2. Press **Send a test** and confirm the message arrives.
+3. Raise the limit to a realistic value, and set an environment if you only care about production.
+4. Add quiet hours if you do not want overnight messages.
+
+For help reading the runs behind an alert, see [trace anatomy](/docs/trace-anatomy) and [troubleshooting](/docs/troubleshooting).
