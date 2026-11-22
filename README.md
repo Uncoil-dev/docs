@@ -1,3 +1,7 @@
+---
+description: The public Uncoil documentation source: Markdoc pages for the quickstart, SDK guides, API reference, and self-hosting.
+---
+
 # Uncoil docs
 
 The public documentation for [Uncoil](https://www.uncoil.dev/docs): quickstart, SDK guides, API reference, and self-hosting.
