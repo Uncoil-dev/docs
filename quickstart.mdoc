@@ -87,3 +87,20 @@ If the run does not appear within a minute, open [Troubleshoot your first trace]
 - Learn the full SDK surface in the [TypeScript SDK](/docs/typescript) or [Python SDK](/docs/python) guide.
 - Read [what is in a trace](/docs/trace-anatomy) so you know what each field means.
 - Attach [feedback and scores](/docs/feedback-and-scores) to runs so quality shows up beside cost and latency.
+
+## Common questions
+
+**Where does the API key go?**
+In a server-side environment variable named `UNCOIL_API_KEY`, set where your agent actually runs. The SDK reads it automatically. Never put it in browser code.
+
+**Why do no runs appear?**
+Usually the key is missing, the key and region disagree, or nothing ran inside a traced function. Work through [Troubleshoot your first trace](/docs/troubleshooting) in order.
+
+**How long does data take to show up?**
+A healthy first run should appear in the dashboard within a minute. If it does not, see the troubleshooting guide.
+
+**Which SDK versions do I need?**
+The install commands above take the current release of `@uncoil.dev/sdk` for TypeScript or `uncoil-sdk` for Python, so you do not need to pin a version. The Python package supports Python 3.7 and newer.
+
+**How do I turn tracing off?**
+Set `sampleRate` (`sample_rate` in Python) to 0 so no runs are recorded. Spans that report an error are still kept unless you also set `keepErrors` (`keep_errors`) to `false`. See [Troubleshoot your first trace](/docs/troubleshooting) for how sampling works.
