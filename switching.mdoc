@@ -35,9 +35,15 @@ Replace the LangSmith tracing variables with an OpenTelemetry exporter that poin
 
 Add the Uncoil SDK or an OpenTelemetry exporter to your agent code. If you use Helicone as a gateway for routing and fallbacks, keep it and remove only the logging you no longer need. Check that tool calls now show inside each run.
 
+## Bring old traces with you
+
+Old traces can follow through the [Ingestion API](/docs/api). Send each one with its original `createdAt` and a stable `spanId` and `runId` built from the old record id, so running the import twice creates no duplicates. Runs show on their original dates.
+
+Your plan's retention still applies: data older than the plan keeps (7, 30 or 90 days) is removed each night, so older imports do not stay. Try about 20 runs first and check their dates in the dashboard. Cost stays at zero unless you supply a rate card.
+
 ## What does not move
 
-Uncoil starts with new traces. Keep your old tool read-only for as long as you want the history.
+Datasets, prompts and scores have no bulk import. Recreate the important ones in Uncoil. Keep your old tool read-only for as long as you want the rest of its history.
 
 ## Check your bill first
 
