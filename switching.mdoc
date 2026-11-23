@@ -1,7 +1,7 @@
 ---
 slug: switching
 title: Move to Uncoil from another tool
-description: Run Uncoil next to Langfuse, LangSmith, Helicone or plain OpenTelemetry, check the results match, then switch the old tool off.
+description: Run Uncoil next to LangSmith, Helicone or plain OpenTelemetry, check the results match, then switch the old tool off.
 section: Connect
 order: 9
 ---
@@ -23,9 +23,9 @@ Uncoil receives traces after the work is done, so it is never in your request pa
 
 Send OTLP HTTP JSON to `https://eu.cloud.uncoil.dev/api/otel` with the project API key. Most setups only change the endpoint and the key. See [OpenTelemetry and integrations](/docs/integrations).
 
-## Coming from Langfuse
+## Coming from another tool
 
-Langfuse also takes OpenTelemetry over HTTP, so if you export OTLP today, change the endpoint and key and keep the rest. Export anything you need from Langfuse before you turn it off, because history does not move across.
+If your current tool takes OpenTelemetry over HTTP, change the endpoint and key and keep the rest. Export anything you need before you turn it off, and see "Bring old traces with you" below for moving history.
 
 ## Coming from LangSmith
 
