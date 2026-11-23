@@ -22,7 +22,7 @@ Set up Uncoil tracing in this project. Uncoil records every model call and tool 
 1. Look at the project first. Find out whether it is TypeScript/JavaScript or Python, and which model SDK it uses (openai, @anthropic-ai/sdk, Vercel AI SDK, LangChain/LangGraph, or something else). Tell me in one line what you found.
 
 2. Install the SDK.
-   - JavaScript/TypeScript: install the package "uncoil" with the project's own package manager (npm, pnpm, yarn or bun). Python: "uncoil-sdk" with pip.
+   - JavaScript/TypeScript: install the package "@uncoil.dev/sdk" with the project's own package manager (npm, pnpm, yarn or bun). Python: "uncoil-sdk" with pip.
    - Python: pip install uncoil-sdk (use the project's own tool, such as uv or poetry, if it has one).
 
 3. Sign me in. Run: npx @uncoil.dev/sdk login
@@ -76,5 +76,7 @@ The agent may ask permission to run `npx`, install packages, and edit files. App
 - **Traces land in the wrong project.** Run `npx @uncoil.dev/sdk doctor`. It names the project the key belongs to. Run `npx @uncoil.dev/sdk login` in this folder to switch.
 - **`UNCOIL_API_KEY is not set`.** Plain Node and Python do not read `.env.local` by themselves. Use `node --env-file=.env.local app.js` or python-dotenv.
 - **Nothing shows up after a minute.** Follow [Troubleshoot your first trace](/docs/troubleshooting).
+
+Using Claude Code? The [Uncoil plugin](/docs/claude-plugin) installs these steps as skills, so you do not need to paste the prompt.
 
 Prefer to do it by hand? The [quickstart](/docs/quickstart) shows every step.
