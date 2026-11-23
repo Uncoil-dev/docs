@@ -1,7 +1,7 @@
 ---
 slug: claude-plugin
 title: Uncoil plugin for Claude Code and Cursor
-description: Install skills that add Uncoil tracing to your agent, debug missing traces, record feedback and move over from another tool, in Claude Code or Cursor.
+description: Install skills that add Uncoil tracing to your agent, debug missing traces, record feedback, build test datasets, set up quality tests and move over from another tool, in Claude Code or Cursor.
 section: Connect
 order: 18
 ---
@@ -47,6 +47,8 @@ npx skills add Uncoil-dev/skill
 | `uncoil` | Look up docs and apply the SDK rules every Uncoil task needs. |
 | `instrument-with-uncoil` | Install the SDK, sign in from the terminal, add tracing and send a first trace. |
 | `debug-uncoil-traces` | Find why runs are missing, steps are flat, cost is zero or calls appear twice. |
+| `build-test-dataset` | Pick real cases from your traces and turn them into a small, balanced [test dataset](/docs/datasets). |
+| `set-up-ai-quality-tests` | Find gaps in your quality checks, add [scores](/docs/feedback-and-scores), run the dataset and set a pass bar before changes ship. |
 | `migrate-to-uncoil` | Move tracing from another tool, or point an OpenTelemetry exporter at Uncoil. |
 
 ## Examples
@@ -54,6 +56,8 @@ npx skills add Uncoil-dev/skill
 - "Add Uncoil tracing to this project."
 - "My traces do not show up. Check why."
 - "Record thumbs up and down feedback on each run."
+- "Build a test dataset from my failed runs."
+- "Set up quality tests so I know a prompt change is safe."
 - "Move this app from LangSmith to Uncoil."
 
 ## Keys and data
