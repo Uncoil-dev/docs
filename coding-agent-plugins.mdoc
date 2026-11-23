@@ -1,0 +1,78 @@
+---
+slug: coding-agent-plugins
+title: Plugins for Codex and OpenCode
+description: Send every Codex turn and OpenCode reply to Uncoil as a trace, to see what your coding agent did and what it cost.
+section: Connect
+order: 19
+---
+
+# Plugins for Codex and OpenCode
+
+These plugins trace the coding agent itself. Each finished turn becomes one run in your Uncoil project, with the model call, every tool call (and its errors), token use and the answer. Sessions group into one conversation, and runs carry a `codex` or `opencode` tag so you can filter them.
+
+Both plugins have no dependencies, read the same `UNCOIL_API_KEY` as the SDKs, and never block the agent: if Uncoil cannot be reached, the turn is sent later.
+
+## Codex
+
+Add the marketplace:
+
+```bash
+codex plugin marketplace add Uncoil-dev/skill
+```
+
+Turn on hooks and the plugin in `~/.codex/config.toml`, or in `<project>/.codex/config.toml` for one project:
+
+```toml
+[features]
+hooks = true
+
+[plugins."uncoil@uncoil"]
+enabled = true
+```
+
+Set your key, restart Codex and trust the Uncoil `Stop` hook in `/hooks`. Nothing is sent before you trust it.
+
+```bash
+export UNCOIL_API_KEY="uncoil_sk_live_..."
+```
+
+You can also save settings in `~/.codex/uncoil.json` or `<project>/.codex/uncoil.json`.
+
+## OpenCode
+
+Copy one file into the plugins folder, then set your key and restart OpenCode:
+
+```bash
+mkdir -p ~/.config/opencode/plugins
+curl -fsSL https://raw.githubusercontent.com/Uncoil-dev/skill/main/opencode/uncoil.js -o ~/.config/opencode/plugins/uncoil.js
+export UNCOIL_API_KEY="uncoil_sk_live_..."
+```
+
+Replies are sent when a session goes idle. The plugin works with OpenCode 1.x plugins.
+
+## Settings
+
+| Setting | Variable | Default |
+| --- | --- | --- |
+| API key | `UNCOIL_API_KEY` | none, so nothing is sent |
+| Host or region | `UNCOIL_HOST` or `UNCOIL_REGION` | the region of your key (`eu` or `us`) |
+| Environment | `UNCOIL_ENVIRONMENT` | none |
+| User | `UNCOIL_USER_ID` | none |
+| Switch off | `UNCOIL_CODEX_ENABLED=false` or `UNCOIL_OPENCODE_ENABLED=false` | on |
+
+The Codex plugin also accepts `UNCOIL_CODEX_TAGS` (comma separated), `UNCOIL_CODEX_MAX_CHARS` and `UNCOIL_CODEX_DEBUG`. Each prompt, answer and tool output is cut at 20,000 characters.
+
+## Keys and data
+
+Prompts, answers and tool inputs and outputs are sent to Uncoil. Uncoil removes obvious secrets and masks emails, phone numbers and card numbers (see [Redaction](/docs/redaction)), but do not trace sessions you do not want stored there. Use a project key for a project made for coding sessions.
+
+## Common questions
+
+**Do I need the SDK?**
+No. The plugins post to the [ingest API](/docs/api) directly.
+
+**Why are some runs missing?**
+Only finished turns are sent. A turn that is still running is sent after it completes.
+
+**Where do I report a problem?**
+Open an issue at [Uncoil-dev/skill](https://github.com/Uncoil-dev/skill/issues).
