@@ -1,0 +1,57 @@
+---
+slug: claude-plugin
+title: Uncoil plugin for Claude Code
+description: Install skills that add Uncoil tracing to your agent, debug missing traces, record feedback and move over from another tool.
+section: Connect
+order: 18
+---
+
+# Uncoil plugin for Claude Code
+
+The Uncoil plugin gives Claude Code the know-how to set up and debug Uncoil in your project. Ask in plain words and Claude picks the matching skill. It also registers the read-only [Uncoil docs server](/docs/mcp-server), so Claude can read the current documentation instead of relying on memory.
+
+## Install
+
+In Claude Code, add the marketplace and install the plugin:
+
+```text
+/plugin marketplace add Uncoil-dev/claude-plugin
+/plugin install uncoil@uncoil
+```
+
+To install only the skills, or to use them in another agent that reads the Agent Skills format:
+
+```bash
+npx skills add Uncoil-dev/claude-plugin
+```
+
+## Skills
+
+| Skill | Use it to |
+| --- | --- |
+| `uncoil` | Look up docs and apply the SDK rules every Uncoil task needs. |
+| `instrument-with-uncoil` | Install the SDK, sign in from the terminal, add tracing and send a first trace. |
+| `debug-uncoil-traces` | Find why runs are missing, steps are flat, cost is zero or calls appear twice. |
+| `migrate-to-uncoil` | Move tracing from another tool, or point an OpenTelemetry exporter at Uncoil. |
+
+## Examples
+
+- "Add Uncoil tracing to this project."
+- "My traces do not show up. Check why."
+- "Record thumbs up and down feedback on each run."
+- "Move this app from LangSmith to Uncoil."
+
+## Keys and data
+
+The skills never ask you to paste an API key into chat. Signing in runs `npx @uncoil.dev/sdk login`, which saves `UNCOIL_API_KEY` and `UNCOIL_PROJECT_ID` to `.env.local` in the folder. Keep that file out of git. The plugin does not read your traces: project keys send data in, and traces are read in the dashboard.
+
+## Common questions
+
+**Does the plugin need an Uncoil account?**
+Only to see traces. Signing in during setup creates the free account if you do not have one.
+
+**Does it work outside Claude Code?**
+The skills follow the Agent Skills format, so other agents that support it can use them. The install command for the plugin is specific to Claude Code.
+
+**Where do I report a problem with a skill?**
+Open an issue at [Uncoil-dev/claude-plugin](https://github.com/Uncoil-dev/claude-plugin/issues).
