@@ -1,13 +1,105 @@
 ---
 slug: cli
 title: CLI workflows
-description: Automate repeatable project and telemetry tasks from a terminal or CI job.
+description: Sign in from a terminal and check your Uncoil setup with the login and doctor commands.
 section: Operate
 order: 17
 ---
 
 # CLI workflows
 
-Use a CLI workflow when a task belongs in source control or CI: validating instrumentation, exporting a dataset, checking a release gate, or promoting a known prompt version.
+The TypeScript SDK ships a small command line tool with two commands. `login` signs you in through your browser and saves an API key for the current folder. `doctor` checks your setup and sends one test trace. Both need Node 18 or newer.
 
-Keep CI credentials in the secret store, print identifiers rather than payloads, and make destructive operations explicit. A repeatable command should report the project, environment, input revision, and resulting trace or evaluation identifiers.
+Run them with `npx`:
+
+```bash
+npx @uncoil.dev/sdk login
+npx @uncoil.dev/sdk doctor
+```
+
+If you give no command, `doctor` runs. Use `-h` or `--help` to print the usage text.
+
+## Sign in with login
+
+`login` opens a page in your browser, waits for you to confirm, and then writes the key to an env file. The key is never printed to the terminal.
+
+```bash
+npx @uncoil.dev/sdk login --region us
+```
+
+The command prints an address and a short code. It also tries to open the address for you. Confirm the code in the browser and the command finishes:
+
+```text
+Open this page to sign in: <sign-in address>
+Code: <short code>
+Waiting for you to confirm in the browser…
+Connected to project "Support agent" (US). Key saved to .env.local.
+```
+
+The file gets the API key and the project id. It also gets the region when you choose `us`. Other lines in the file stay as they were. The file is created with owner-only permissions. If the folder is a git repository and the file is not already ignored, the command adds its name to `.gitignore`.
+
+| Option | What it does |
+| --- | --- |
+| `--region <eu\|us>` | Data region. Defaults to `UNCOIL_REGION`, then `eu`. |
+| `--new <name>` | Create a new project with this name instead of picking one in the browser. |
+| `--no-browser` | Print the address and code, but do not open a browser. |
+| `--env-file <path>` | Where to save the key. Defaults to `.env.local`. |
+| `--host <url>` | Use a custom host. Defaults to `UNCOIL_HOST`. |
+| `--json` | Print one JSON object per line instead of text. |
+
+With `--json`, each line has an `event` field: `waiting`, `connected` or `error`. Use `--no-browser` in remote shells and CI.
+
+The command waits until the code expires, plus two minutes, before it gives up.
+
+## Check your setup with doctor
+
+`doctor` runs its checks in order and stops at the first one that fails. It reads `.env.local` and `.env` in the current folder, but values already in your environment win.
+
+```bash
+npx @uncoil.dev/sdk doctor
+```
+
+```text
+Uncoil setup check
+
+✓ Runtime: Node 22.11.0
+✓ API key: Found uncoil_sk_live_eu…ab12
+✓ Region and host: EU · https://eu.cloud.uncoil.dev
+✓ Network: Reached https://eu.cloud.uncoil.dev (HTTP 200).
+✓ Project: Traces will land in: Support agent
+✓ Test trace: Accepted. Look for "Uncoil setup check" (run doctor_…) in your dashboard.
+
+All good. Your setup is ready to send traces.
+```
+
+The checks are runtime, API key, region and host, network, project and test trace. The project check only shows when the server can say which project the key belongs to. A marker shows each result: `✓` passed, `✗` failed, `-` skipped. Failed checks add a `Fix:` line.
+
+| Option | What it does |
+| --- | --- |
+| `--key <key>` | API key. Defaults to `UNCOIL_API_KEY`. |
+| `--region <eu\|us>` | Data region. Defaults to `UNCOIL_REGION`, then the region in the key. |
+| `--host <url>` | Use a custom host. Defaults to `UNCOIL_HOST`. |
+| `--no-send` | Skip the test trace. |
+| `--json` | Print the report as JSON. |
+
+The test trace is named "Uncoil setup check" and is tagged `uncoil-doctor`. Search for the run id in your dashboard. Use `--no-send` if you do not want it to appear.
+
+## Exit codes
+
+- `0`: the command succeeded. For `doctor`, no check failed.
+- `1`: `login` did not finish, or a `doctor` check failed.
+- `2`: the options were wrong, such as an unknown option, a missing value, or a region other than `eu` or `us`.
+
+## Common errors
+
+- **No API key was found.** Set `UNCOIL_API_KEY`, pass `--key`, or run `login`.
+- **The key does not look like an Uncoil key.** Keys start with `uncoil_sk_`. Copy the key again from the API keys page.
+- **The key belongs to one region, but the host points at another.** Pass the matching `--region`, or create a key in the other region.
+- **Could not reach the host.** Check your connection, firewall and `--host`. Node's `fetch` does not use `HTTPS_PROXY` on its own, so a proxy may block the request.
+- **The project id points at a different project than the key.** Run `login` again in this folder so the key and project are saved together.
+- **Rejected with 401 or 403.** The key is wrong, revoked, or from another region. Create a new key.
+- **Not accepted with 402 or 429.** You may be over your plan limit or sending too fast. Check [plans and limits](/docs/plans-and-limits).
+- **The sign-in code expired, or sign-in was cancelled.** Run `login` again.
+- **Too many sign-in attempts.** Wait a few minutes and try again.
+
+For more help, see [Troubleshoot your first trace](/docs/troubleshooting) and [Choose an Uncoil Cloud region](/docs/data-regions).
