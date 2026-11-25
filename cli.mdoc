@@ -47,7 +47,7 @@ The file gets the API key and the project id. It also gets the region when you c
 | `--host <url>` | Use a custom host. Defaults to `UNCOIL_HOST`. |
 | `--json` | Print one JSON object per line instead of text. |
 
-With `--json`, each line has an `event` field: `waiting`, `connected` or `error`. Use `--no-browser` in remote shells and CI.
+With `--json`, each line has an `event` field: `waiting`, `connected` or `error`. Errors go to stderr. Use `--no-browser` in remote shells and CI.
 
 The command waits until the code expires, plus two minutes, before it gives up.
 
@@ -63,7 +63,7 @@ npx @uncoil.dev/sdk doctor
 Uncoil setup check
 
 ✓ Runtime: Node 22.11.0
-✓ API key: Found uncoil_sk_live_eu…ab12
+✓ API key: Found uncoil_sk_live_e…ab12
 ✓ Region and host: EU · https://eu.cloud.uncoil.dev
 ✓ Network: Reached https://eu.cloud.uncoil.dev (HTTP 200).
 ✓ Project: Traces will land in: Support agent
@@ -80,7 +80,7 @@ The checks are runtime, API key, region and host, network, project and test trac
 | `--region <eu\|us>` | Data region. Defaults to `UNCOIL_REGION`, then the region in the key. |
 | `--host <url>` | Use a custom host. Defaults to `UNCOIL_HOST`. |
 | `--no-send` | Skip the test trace. |
-| `--json` | Print the report as JSON. |
+| `--json` | Print the report as JSON with `ok`, `host`, `checks` and, after a sent trace, `runId`. |
 
 The test trace is named "Uncoil setup check" and is tagged `uncoil-doctor`. Search for the run id in your dashboard. Use `--no-send` if you do not want it to appear.
 
@@ -94,12 +94,16 @@ The test trace is named "Uncoil setup check" and is tagged `uncoil-doctor`. Sear
 
 - **No API key was found.** Set `UNCOIL_API_KEY`, pass `--key`, or run `login`.
 - **The key does not look like an Uncoil key.** Keys start with `uncoil_sk_`. Copy the key again from the API keys page.
+- **The host is not a valid web address.** Use a full address with `https://`, or drop `--host` and use `--region`.
 - **The key belongs to one region, but the host points at another.** Pass the matching `--region`, or create a key in the other region.
 - **Could not reach the host.** Check your connection, firewall and `--host`. Node's `fetch` does not use `HTTPS_PROXY` on its own, so a proxy may block the request.
 - **The project id points at a different project than the key.** Run `login` again in this folder so the key and project are saved together.
 - **Rejected with 401 or 403.** The key is wrong, revoked, or from another region. Create a new key.
 - **Not accepted with 402 or 429.** You may be over your plan limit or sending too fast. Check [plans and limits](/docs/plans-and-limits).
+- **Uncoil had a problem on its side (5xx).** Your app is not affected. Check the status page and try again in a minute.
 - **The sign-in code expired, or sign-in was cancelled.** Run `login` again.
 - **Too many sign-in attempts.** Wait a few minutes and try again.
+- **Timed out waiting for the browser, or could not read the key Uncoil sent.** Run `login` again.
+- **Uncoil login needs Node 18 or newer.** Upgrade Node; `doctor` reports the same problem as a failed runtime check.
 
 For more help, see [Troubleshoot your first trace](/docs/troubleshooting) and [Choose an Uncoil Cloud region](/docs/data-regions).
