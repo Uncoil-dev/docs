@@ -8,6 +8,71 @@ order: 18
 
 # Export telemetry
 
-Export data when retention, warehouse analysis, or incident review requires a copy outside the dashboard. Decide whether the export contains raw inputs and outputs before selecting a destination.
+Export data when retention, warehouse analysis, or incident review requires a copy outside the dashboard. Decide whether the export contains raw inputs and outputs before choosing where to keep it.
 
-Prefer a bounded time range, record the export cursor or timestamp, and verify counts after delivery. Apply the same redaction and access rules to exported files as to live trace payloads.
+Uncoil has two kinds of export: a full project download as one JSON file, and CSV downloads of the table you are looking at.
+
+## Full project download
+
+Open the project **Settings**, choose the **Data** tab, and select **Download all data (JSON)**. Only project admins can download; other members get an error.
+
+The file is named `uncoil-<project-name>-<YYYY-MM-DD>.json` and is streamed as it is built, so large projects can take a minute. It has this shape:
+
+```json
+{
+  "exportedAt": "2026-01-15T09:30:00.000Z",
+  "project": { "name": "support-agent" },
+  "data": {
+    "agentRuns": [],
+    "datasets": [],
+    "datasetItems": [],
+    "scores": []
+  },
+  "analytics": {
+    "spans": [],
+    "evaluation_scores": []
+  }
+}
+```
+
+| Key | Contents |
+| --- | --- |
+| `exportedAt` | When the file was built, as a UTC timestamp. |
+| `project` | The project record. The API key hash, billing ids, and Slack and Teams webhook addresses are removed. |
+| `data` | One array per project table: runs, sessions, alerts and alert rules, comments, saved views, dashboards, prompts and prompt versions, datasets and their rows, scores, annotations, evaluators, evaluation jobs and results, experiments, resilience runs, audit logs, and more. |
+| `analytics` | Raw `spans` and `evaluation_scores` rows from analytics storage. |
+
+Internal caches used to speed up dashboards are left out.
+
+If analytics storage cannot be read, the file still downloads. The affected array stops early and a key such as `spans_error` is added with the message `Analytics storage could not be read; this file is incomplete.` Check for keys ending in `_error` before treating a file as complete.
+
+## CSV downloads
+
+Several dashboard pages have an **Export CSV** button. Each one downloads the rows currently loaded on that page, not the whole project.
+
+| Page | File | Columns |
+| --- | --- | --- |
+| Traces | `traces-<date-time>.csv` | The columns you have chosen to show, in the same order, for the traces on the current page |
+| Scores | `scores-<date>.csv` | `time`, `name`, `value`, `type`, `source`, `trace`, `span`, `comment`, for the selected time range |
+| Costs | `costs-by-<grouping>-<date>.csv` | The grouping, `Cost USD`, `Share %`, `Calls`, `Traces`, `Input tokens`, `Output tokens`, `Avg latency ms` |
+| Steps | `actions.csv` | The columns shown in the table |
+
+In the traces CSV, header names carry their units: durations end in `(ms)`, cost in `(USD)`, and the start and last-seen times in `(UTC)`. Metadata columns are named `Metadata: <key>`. Tags are written as a JSON list, and input and output are short one-line previews, not the full payloads.
+
+Every cell is quoted. A cell that starts with `=`, `+`, `-`, `@`, a tab, or a carriage return gets a leading `'` so spreadsheet apps do not run it as a formula.
+
+### Example
+
+A traces export with the Trace ID, Latency, Cost, and a `customer_tier` metadata column shown looks like this:
+
+```text
+"Trace ID","Latency (ms)","Cost (USD)","Metadata: customer_tier"
+"run_8f2c","1840","0.0042","pro"
+"run_8f2d","312","0","'-"
+```
+
+The last cell held `-`, so it was written with a leading `'`.
+
+## Handle exported files carefully
+
+Exports contain the same inputs, outputs, and metadata the dashboard shows, with whatever [redaction](/docs/redaction) was applied at ingestion. Store them with the same access rules as live trace data, and record the export date so later copies can be compared.
