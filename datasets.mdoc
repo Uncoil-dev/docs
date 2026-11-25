@@ -8,8 +8,75 @@ order: 11
 
 # Build evaluation datasets
 
-Datasets make a quality decision repeatable. Select traces that represent common requests, known failures, and important edge cases, then preserve the input, expected behavior, and evaluation context.
+Datasets make a quality decision repeatable. Select traces that represent common requests, known failures, and important edge cases, then preserve the input and the expected behavior.
 
 Keep the dataset stable while comparing prompt or model candidates. A useful dataset is small enough to run frequently and broad enough to expose regressions that a single happy-path example cannot show.
+
+## What a row holds
+
+Each dataset row has two text columns.
+
+| Column | Required | Notes |
+| --- | --- | --- |
+| Input | Yes | The request sent to your agent. Leading and trailing spaces are trimmed. |
+| Expected answer | No | What a correct run should return. Rows without it still run, but are not marked as matching or not. |
+
+Paste import and the row editor accept up to 20,000 characters per column. Rows added from a captured session also keep a link to the trace they came from.
+
+## Add rows
+
+Open **Datasets** in the project dashboard, create a dataset with a name that is unique in the project, then add rows one at a time or paste many at once. Editing or deleting a row is saved straight away.
+
+## Paste many rows
+
+The paste box accepts up to 500 rows at a time. It reads the pasted text in one of these formats:
+
+| Format | How it is read |
+| --- | --- |
+| JSON list | Text starting with `[` is read as one JSON array. Each entry is a text (the input) or an object. If the list cannot be read, nothing is imported. |
+| JSON lines | A line starting with `{` is read as one JSON object. |
+| Spreadsheet copy | A line with a tab: the first cell is the input, the rest is the expected answer. |
+| Plain lines | Any other line is one input with no expected answer. |
+
+JSON lines, spreadsheet lines, and plain lines can be mixed in one paste. Blank lines are skipped.
+
+In a JSON object, the input is taken from the first of these fields that is present: `input`, `question`, `prompt`, `query`. The expected answer comes from the first of `expectedOutput`, `expected_output`, `expected`, `output`, `answer`. A value that is not text, such as a number or an object, is stored as its JSON text.
+
+Before you import, the box shows how many rows are ready and names the first three lines it will skip, with the reason:
+
+- the line is not valid JSON, or a JSON list entry is empty or is neither a text nor an object;
+- the object has none of the input fields;
+- a column is longer than 20,000 characters.
+
+Rows past the first 500 valid ones are left out, and the box says so. Paste the rest in a second batch.
+
+### Example
+
+Pasting these three lines:
+
+```text
+{"question": "When does the store open on Sunday?", "answer": "10am"}
+Do you ship to Canada?	Yes, in 5 to 7 days
+Can I change my delivery address?
+```
+
+creates three rows. The first two have an expected answer; the third has only an input.
+
+## Versions and matching
+
+Every change to a dataset raises its version number: adding, editing, or deleting rows, renaming it, or changing who can open it. Keep a dataset unchanged while you compare candidates, so each run sees the same rows.
+
+When an experiment compares an output with the expected answer, the check ignores letter case, leading and trailing spaces, and repeated whitespace. `Thursday.` and ` thursday. ` count as the same answer; `Thursday` and `Thursday.` do not.
+
+## Limits
+
+- Paste import: 500 rows per batch.
+- Row editor: shows the oldest 500 rows of a dataset.
+- Dataset tabs show a row count up to 1,000, then `1000+`.
+- Each column: 20,000 characters.
+
+## Restricted datasets
+
+A dataset is visible to everyone with access to the project unless its owner restricts it. A restricted dataset shows a lock and opens only for its creator and the people they chose.
 
 Run the dataset through the [evaluation engine](/docs/evaluation), then compare quality, cost, latency, and failure rates before changing a production label.
