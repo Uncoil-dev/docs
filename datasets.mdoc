@@ -21,7 +21,7 @@ Each dataset row has two text columns.
 | Input | Yes | The request sent to your agent. Leading and trailing spaces are trimmed. |
 | Expected answer | No | What a correct run should return. Rows without it still run, but are not marked as matching or not. |
 
-Each column holds up to 20,000 characters. Rows added from a captured session also keep a link to the trace they came from.
+Paste import and the row editor accept up to 20,000 characters per column. Rows added from a captured session also keep a link to the trace they came from.
 
 ## Add rows
 
@@ -44,7 +44,7 @@ In a JSON object, the input is taken from the first of these fields that is pres
 
 Before you import, the box shows how many rows are ready and names the first three lines it will skip, with the reason:
 
-- the line is not valid JSON;
+- the line is not valid JSON, or a JSON list entry is empty or is neither a text nor an object;
 - the object has none of the input fields;
 - a column is longer than 20,000 characters.
 
