@@ -17,4 +17,11 @@ npm ci
 npm run build
 ```
 
-Configure the public Convex endpoint, authentication settings, Tinybird host and token, and provider keys in server-side environment variables. Use separate Convex and Tinybird environments for staging and production, and verify authentication before exposing dashboard routes.
+Uncoil runs on four services alongside the web application:
+
+- **Convex** stores app data such as projects, run summaries, alerts and comments.
+- **ClickHouse** stores raw spans and serves the trace and cost analytics.
+- **Inngest** processes ingested spans in the background, writing them to ClickHouse and Convex.
+- **Redis** caches API responses between ClickHouse and the dashboard.
+
+Configure the public Convex endpoint, authentication settings, the ClickHouse URL and credentials, the Inngest keys, the Redis URL and provider keys in server-side environment variables. Use separate Convex and ClickHouse environments for staging and production, and verify authentication before exposing dashboard routes.
