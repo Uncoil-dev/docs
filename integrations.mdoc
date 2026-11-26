@@ -10,10 +10,172 @@ order: 8
 
 Use OpenTelemetry when your framework already emits standard spans or when you want a vendor-neutral exporter path.
 
+## The endpoint
+
+Send traces to `/api/otel` on the host of your key's region, for example `https://eu.cloud.uncoil.dev/api/otel` or `https://us.cloud.uncoil.dev/api/otel`. Use this full address as the exporter URL; do not add `/v1/traces`.
+
+- **Headers:** `Authorization: Bearer <project API key>` and `Content-Type: application/json`.
+- **Format:** OTLP HTTP JSON, a body with a `resourceSpans` array. Protobuf and gRPC are not accepted.
+- **Batches:** up to 1,000 spans and 4 MB per request. The per-minute rate limit counts each span.
+- **Response:** `202` with `{"ok": true, "accepted": 12, "failed": 0}`. Errors use the same statuses as the [Ingestion API](/docs/api): `401` for a bad or wrong-region key, `413` for a body over 4 MB or more than 1,000 spans, `422` for invalid JSON or a missing `resourceSpans`, `429` for rate and plan limits, `503` when the quota service is down.
+
+A span with no input, no output and no error status is skipped. Set an input or output attribute on every span you want to see.
+
+## Attribute mapping
+
+Uncoil reads these span attributes. Values can be strings, integers or doubles.
+
+| Uncoil field | Span attributes |
+| --- | --- |
+| Model | `gen_ai.request.model`, `gen_ai.system`, `ai.model.id` |
+| Input | `gen_ai.prompt`, `ai.input` |
+| Output | `gen_ai.completion`, `ai.output` |
+| Input tokens | `gen_ai.usage.input_tokens`, `gen_ai.usage.prompt_tokens`, `ai.usage.input_tokens` |
+| Output tokens | `gen_ai.usage.output_tokens`, `gen_ai.usage.completion_tokens`, `ai.usage.output_tokens` |
+| Cost (USD) | `gen_ai.usage.total_cost`, `ai.cost.usd` |
+| Tool name | `gen_ai.tool.name`, `ai.tool.name` |
+| Span type | `ai.span.type` |
+| Session | `session.id`, `ai.session.id`, `gen_ai.conversation.id` |
+| End user | `enduser.id`, `ai.user.id` |
+| Environment | `deployment.environment.name`, `environment` |
+| Release | `service.version`, `release` |
+| Trace name | `uncoil.trace.name`, `ai.trace.name` |
+| Tags | `uncoil.tags`, `ai.tags` (comma-separated) |
+| Run id | `ai.run.id` |
+| Time to first token (ms) | `gen_ai.latency.time_to_first_token`, `gen_ai.time_to_first_token_ms`, `ai.ttft_ms` |
+| Retries | `uncoil.retry_count`, `ai.retry_count` |
+| Timeout | `uncoil.timeout`, `ai.timeout` (`"true"`), `uncoil.timeout_ms`, `ai.timeout_ms` |
+| Stack trace | `exception.stacktrace`, `error.stacktrace` |
+
+Any other attribute is kept as metadata on the span and passes through the project's redaction rules.
+
+The rest comes from the span itself:
+
+- **Run:** spans with the same trace id form one run, unless `ai.run.id` is set.
+- **Parent:** `parentSpanId` nests spans, and the span name becomes the trace name when no trace name attribute is set.
+- **Timing:** the start time is the span time, and end minus start is the latency.
+- **Errors:** a span with status `ERROR` is recorded with the error type `otel_error`, and its status message becomes the error message and, when no output attribute is set, the output.
+- **Span type:** without `ai.span.type`, a `CLIENT` span is recorded as `llm_call`, and other kinds keep their kind name, such as `internal`. Set `ai.span.type` to `llm_call` or `tool_call` to be explicit.
+- **Resource:** `session.id`, `enduser.id`, `deployment.environment.name` and `service.version` on the resource apply to every span that does not set its own. When no model attribute is set, `service.name` is used as the model.
+
+## Node.js exporter
+
+The standard HTTP exporter sends JSON, so it works as is:
+
 ```bash
-pip install opentelemetry-sdk opentelemetry-exporter-otlp-proto-http
+npm install @opentelemetry/sdk-trace-node @opentelemetry/exporter-trace-otlp-http @opentelemetry/resources
 ```
 
-Send OTLP HTTP JSON to `https://eu.cloud.uncoil.dev/api/otel` with the project API key. Framework instrumentation can add model, token, retrieval, embedding, and tool attributes; include session and deployment attributes when you need grouping in the dashboard.
+```ts
+import { NodeTracerProvider, BatchSpanProcessor } from "@opentelemetry/sdk-trace-node";
+import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
+import { resourceFromAttributes } from "@opentelemetry/resources";
+
+const exporter = new OTLPTraceExporter({
+  url: "https://eu.cloud.uncoil.dev/api/otel",
+  headers: { Authorization: `Bearer ${process.env.UNCOIL_API_KEY}` },
+});
+
+const provider = new NodeTracerProvider({
+  resource: resourceFromAttributes({ "service.name": "support-agent", "deployment.environment.name": "production" }),
+  spanProcessors: [new BatchSpanProcessor(exporter)],
+});
+provider.register();
+
+const tracer = provider.getTracer("support-agent");
+tracer.startActiveSpan("chat", (span) => {
+  span.setAttributes({
+    "ai.span.type": "llm_call",
+    "gen_ai.request.model": "your-model-id",
+    "gen_ai.prompt": "What is our refund policy?",
+    "gen_ai.completion": "Refunds are accepted within 30 days.",
+    "gen_ai.usage.input_tokens": 12,
+    "gen_ai.usage.output_tokens": 9,
+  });
+  span.end();
+});
+
+await provider.shutdown();
+```
+
+## Python exporter
+
+The OpenTelemetry Python HTTP exporter sends protobuf, which this endpoint does not read. Use a small JSON exporter instead:
+
+```bash
+pip install opentelemetry-sdk requests
+```
+
+```python
+import os
+import requests
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExporter, SpanExportResult
+
+
+def _value(v):
+    if isinstance(v, bool):
+        return {"stringValue": str(v).lower()}
+    if isinstance(v, int):
+        return {"intValue": str(v)}
+    if isinstance(v, float):
+        return {"doubleValue": v}
+    return {"stringValue": str(v)}
+
+
+def _attrs(attributes):
+    return [{"key": k, "value": _value(v)} for k, v in (attributes or {}).items()]
+
+
+class UncoilJsonExporter(SpanExporter):
+    """Posts finished spans to Uncoil as OTLP HTTP JSON."""
+
+    def __init__(self, endpoint, api_key):
+        self.endpoint, self.api_key = endpoint, api_key
+
+    def export(self, spans):
+        resource_spans = [{
+            "resource": {"attributes": _attrs(spans[0].resource.attributes)},
+            "scopeSpans": [{"spans": [{
+                "traceId": format(s.context.trace_id, "032x"),
+                "spanId": format(s.context.span_id, "016x"),
+                "parentSpanId": format(s.parent.span_id, "016x") if s.parent else "",
+                "name": s.name,
+                "kind": s.kind.value + 1,
+                "startTimeUnixNano": str(s.start_time),
+                "endTimeUnixNano": str(s.end_time),
+                "attributes": _attrs(s.attributes),
+                "status": {"code": s.status.status_code.value, "message": s.status.description or ""},
+            } for s in spans]}],
+        }]
+        response = requests.post(
+            self.endpoint,
+            json={"resourceSpans": resource_spans},
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            timeout=10,
+        )
+        return SpanExportResult.SUCCESS if response.ok else SpanExportResult.FAILURE
+
+
+provider = TracerProvider(resource=Resource.create({"service.name": "support-agent"}))
+provider.add_span_processor(BatchSpanProcessor(UncoilJsonExporter(
+    "https://eu.cloud.uncoil.dev/api/otel",
+    os.environ["UNCOIL_API_KEY"],
+)))
+trace.set_tracer_provider(provider)
+
+tracer = trace.get_tracer("support-agent")
+with tracer.start_as_current_span("chat") as span:
+    span.set_attribute("ai.span.type", "llm_call")
+    span.set_attribute("gen_ai.request.model", "your-model-id")
+    span.set_attribute("gen_ai.prompt", "hi")
+    span.set_attribute("gen_ai.completion", "hello")
+    span.set_attribute("gen_ai.usage.input_tokens", 3)
+provider.shutdown()
+```
+
+If you do not need a vendor-neutral path, the [Python SDK](/docs/python) is simpler.
 
 Moving from another tracing tool? See [Move to Uncoil from another tool](/docs/switching).
