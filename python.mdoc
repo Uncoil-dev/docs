@@ -92,6 +92,14 @@ tool_call(
 
 Inputs and outputs have obvious secrets removed and are capped at 10,000 characters. Do not record anything you would not want stored. Delivery problems never interrupt your agent.
 
+Spans are queued and sent from a background thread, so tracing does not wait on the network. Spans still queued when the program exits get up to two seconds to send. In serverless handlers, or anywhere the process is frozen or stopped right after a request, send what is queued before returning:
+
+```python
+uncoil.flush(timeout=5)  # returns False if spans were still waiting after 5 seconds
+```
+
+`client.flush()` does the same for one client. Up to 1,000 spans can wait at once; past that, new spans are dropped and reported once with the code `queue_full`.
+
 ## Feedback, scores and prompts
 
 Create a `UncoilClient` with `project_id` to attach feedback and scores. See [Feedback and scores](/docs/feedback-and-scores). To resolve a deployed prompt, see [Prompt deployment](/docs/prompts).
