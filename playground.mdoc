@@ -1,13 +1,43 @@
 ---
 slug: playground
 title: Prompt playground
-description: Compare prompt changes against a trace or dataset before deployment.
+description: Run a prompt on up to three models side by side, with variables, temperature and token counts.
 section: Improve
 order: 19
 ---
 
 # Prompt playground
 
-Use the playground to isolate a prompt change from a production deployment. Start with a representative input, keep the model and tools fixed when diagnosing prompt behavior, and compare the result against the original prompt version.
+The playground runs a prompt on one to three models at once and shows each answer in its own lane, with the time it took and the input and output tokens. Use it to try a prompt change before you save it as a new version.
 
-For a stronger decision, run the candidate across a [dataset](/docs/datasets) and inspect quality, cost, latency, and failure signals. Promote through the environment labels described in [Prompt deployment](/docs/prompts).
+## Open it
+
+In the dashboard sidebar, choose **Prompt management → Playground**. To start from a saved prompt, pick it from **Start from a saved prompt** at the top; the prompt text and, if the version has one, its model are filled in. A link with `?prompt=<name>&version=<number>` opens that saved version directly.
+
+The playground does not open from a trace. Copy the input you want to test from the trace into the prompt or a variable.
+
+## What it needs
+
+Runs use a model provider key set on the Uncoil server:
+
+| Key | Models it runs |
+| --- | --- |
+| `OPENAI_API_KEY` | OpenAI models |
+| `ANTHROPIC_API_KEY` | Claude models (any model name starting with `claude`) |
+
+One is enough. If neither is set, the page says **Add a key to run prompts** and runs stay switched off; you can still write the prompt and fill in values. Models whose provider has no key are struck through. On a [self-hosted](/docs/self-hosting) install, set the key in the server environment. Keys added under project LLM connections are not used by the playground.
+
+## Write and run a prompt
+
+1. Write the prompt in **Prompt text**. Add `{{name}}` anywhere to create a variable; a box for its value appears under the prompt. Every variable needs a value before you can run.
+2. Pick up to three models. The built-in list is `gpt-5.6-luna`, `gpt-4o-mini`, `gpt-4o`, `gpt-4.1-mini` and `gpt-4.1`. Type any other name, such as a Claude model, into **Add model** and press Enter.
+3. Set **Temp** (temperature) between 0 and 2. The default is 0.2. Claude models use at most 1.
+4. Press **Run**, or **Run on N models**.
+
+Each model answers with up to 2,048 output tokens and gets one minute before the run reports a timeout. Use **Copy answer** to copy a result.
+
+## What is saved
+
+Nothing from the playground is stored by Uncoil. The page keeps your last ten runs in a strip under the results, with **Reuse** to load a run's prompt, models and temperature again. That list is cleared when you leave or reload the page.
+
+To keep a prompt, save it as a version on the Prompts page and promote it through the environment labels described in [Prompt deployment](/docs/prompts). To check a prompt against many inputs, run it as an experiment on a [dataset](/docs/datasets).
