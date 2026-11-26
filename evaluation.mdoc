@@ -18,3 +18,48 @@ client.score(runId, "groundedness", 0.92, { dataType: "numeric" });
 See [Feedback and scores](/docs/feedback-and-scores) for the full set of options, including how to get the run id.
 
 Use production traces to build datasets, run prompt or model candidates against the same examples, and compare quality, cost, latency, and failure rate before promotion. Online evaluators run asynchronously so ingestion remains independent of scoring.
+
+## Evaluators
+
+An evaluator grades an answer and saves the result as a score named after the evaluator. Open **Evaluators** in the project dashboard and choose **New evaluator**. There are two kinds:
+
+- **Code rule**: a fixed check. Exact and free, good for format checks. It gives pass or fail.
+- **AI judge**: a model grades the answer against a rubric you write. It gives pass or fail, or a number from 0 to 1.
+
+The kind cannot change after the evaluator is created. Saving an edit creates a new version: new traces use it straight away, and earlier results are not re-scored.
+
+## Code rules
+
+Write one of these in the **Rule** box. The **Try this rule** box on a code rule evaluator checks a rule against a pasted answer before you rely on it.
+
+| Rule | Passes when |
+| --- | --- |
+| `contains:<text>` | The answer includes the text. Capital letters are ignored. |
+| `equals_expected` | The answer equals the expected answer, after trimming spaces at both ends. Fails when there is no expected answer. |
+| `not_empty` | The answer is not blank. |
+| `regex:/pattern/i` | The answer matches the regular expression. Flags after the closing slash are optional. |
+| `json_valid` | The answer is valid JSON. |
+| `json_schema:{"type":"object","required":["id"]}` | The answer is a JSON object that has every listed key. |
+
+A rule that is not on this list, a regular expression that does not compile, or a `json_schema:` part that is not valid JSON is rejected when you save.
+
+## AI judges
+
+Write a rubric that says what a good answer looks like and when to give a low score, or start from a template: Groundedness, Toxicity, Personal data leak, Jailbreak attempt, Prompt injection, or Policy compliance. Pick a judge model: GPT-4o mini or GPT-4.1 mini.
+
+## Score new steps automatically
+
+Turn on **Grade new steps automatically** to have an evaluator grade incoming steps as they are ingested. When it is off, the evaluator only runs when called by hand or from an experiment.
+
+| Option | What it does |
+| --- | --- |
+| Share of matching steps to grade | From 1% to 100%. Each matching step is picked at random at this rate. |
+| When it grades | **Every step**, **Only failed steps** (error steps), or **Only the end of a run**. |
+| Only steps using a model | Grades only steps whose model name contains this text, ignoring case. Up to 80 characters. Steps with no model are skipped. |
+| Most grades per day | A cap from 1 to 100,000 grades per evaluator per day. The day starts at midnight UTC. |
+
+Each AI judge grade is one model call. The form shows an estimate per grade, and per day when a cap is set. Code rules are free and instant, so no cap is needed.
+
+### Example
+
+An evaluator named `answer-is-json` with the rule `json_valid`, grading 100% of **Only the end of a run**, checks the final answer of every run. Runs whose final answer is not valid JSON get a failing `answer-is-json` score, and the evaluator page shows the latest ones under **Failing examples**, each with a link to its trace.
