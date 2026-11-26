@@ -40,6 +40,25 @@ Every option is optional. These are the ones you will use most:
 
 A key belongs to one region. If the key and the configured region disagree, the client throws `Uncoil API key region mismatch` when it is created, instead of sending data to the wrong place.
 
+## Check your setup
+
+Before you instrument anything, run the setup check from your project folder:
+
+```bash
+npx @uncoil.dev/sdk doctor
+```
+
+It reads `UNCOIL_API_KEY`, `UNCOIL_REGION` and `UNCOIL_HOST` from your environment, `.env.local` or `.env`, and prints one line per check:
+
+- `Runtime`: Node 18 or newer, with built-in `fetch`.
+- `API key`: a key was found and starts with `uncoil_sk_`.
+- `Region and host`: the key's region matches the host you are sending to.
+- `Network`: the Uncoil host can be reached.
+- `Project`: the project your traces will land in, when the server reports it.
+- `Test trace`: one trace named "Uncoil setup check" was accepted.
+
+Each line starts with `✓` for a pass, `✗` for a failure, or `-` for a skipped check. A failed check prints a `Fix:` line under it and stops the run. Add `--no-send` to skip the test trace. For every option and exit code, see [CLI workflows](/docs/cli).
+
 ## Record steps with span and observe
 
 Inside a `traceAgent` function, `span` records a block of work and `observe` wraps a function. Steps started inside another step become its children, so the trace graph shows which step called which and how loops repeat.
