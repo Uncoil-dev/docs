@@ -31,6 +31,38 @@ The decorator accepts `client`, `name`, `environment`, `release`, `deployment_id
 
 Each call of the decorated function is one trace. A key belongs to one region, EU or US, and the client refuses a mismatched configuration instead of sending data to the wrong place.
 
+## Check your setup
+
+The package installs a setup check. Run it in the environment where your agent runs:
+
+```bash
+uncoil-doctor
+```
+
+`python -m uncoil.doctor` does the same. It checks the Python runtime, the API key, the region and host, and the network, then sends one test trace named "Uncoil setup check", tagged `uncoil-doctor`. It stops at the first check that fails.
+
+```text
+Uncoil setup check
+
+✓ Runtime: Python 3.12.4
+✓ API key: Found uncoil_sk_live_e…a1b2
+✓ Region and host: EU · https://eu.cloud.uncoil.dev
+✓ Network: Reached https://eu.cloud.uncoil.dev (HTTP 200).
+✓ Test trace: Accepted. Look for "Uncoil setup check" (run doctor_…) in your dashboard.
+
+All good. Your setup is ready to send traces.
+```
+
+Each line starts with a mark:
+
+- `✓`: the check passed.
+- `✗`: the check failed. A `Fix:` line below it says what to change, and the output ends with `Something needs fixing; see the Fix lines above.`
+- `-`: the check was skipped, for example the test trace with `--no-send`.
+
+The check reads `UNCOIL_API_KEY`, `UNCOIL_REGION` and `UNCOIL_HOST` from the environment. Python does not load `.env` files on its own, so if the key is only in `.env` or `.env.local`, the check says so. Override the defaults with `--key`, `--region eu` or `--region us`, and `--host`.
+
+For scripts and CI, add `--json` to print the result as JSON instead: `ok`, `host`, `runId` (the test trace's run id, or `null`), and `checks`, a list where each entry has `id`, `title`, `status` (`ok`, `fail` or `skip`), `message` and `hint`. The command exits with `0` when no check failed and `1` when one did. Wrong options, such as an unknown region, exit with `2`.
+
 ## Record steps with span and observe
 
 Use `span` for a block of work and `observe` for a function. Steps started inside another step become its children.
