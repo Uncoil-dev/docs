@@ -8,7 +8,7 @@ order: 23
 
 # Resilience and chaos testing
 
-Both SDKs ship a chaos harness that drives your configured [runtime policy](/docs/release-gates) through a weighted mix of failure conditions — timeouts, rate limits, server errors, and cost overruns — against real HTTP calls. Use it to verify fallback chains, retry backoff, and cost ceilings actually behave the way your policy declares before an incident forces the question.
+The source of both SDKs includes a chaos harness that drives your configured [runtime policy](/docs/release-gates) through a weighted mix of failure conditions — timeouts, rate limits, server errors, and cost overruns — against real HTTP calls. Use it to verify fallback chains, retry backoff, and cost ceilings actually behave the way your policy declares before an incident forces the question.
 
 ## Run it from the dashboard
 
@@ -25,6 +25,15 @@ Each iteration picks a failure mode at random from a configurable mix and drives
 - **`cost_overrun`** — returns a response that trips `maxCostPerRun`/`maxCostPerDay` to confirm the cost ceiling actually blocks.
 
 The harness reports success rate, average latency, and fail-open count per failure mode, so you can confirm `enforce` mode fails closed (or intentionally fails open) exactly where you expect.
+
+## Get the harness
+
+The harness scripts are not part of the published `@uncoil.dev/sdk` or `uncoil-sdk` packages, so they do not run from your own project. Clone the SDK source and run them from the root of that clone:
+
+```bash
+git clone https://github.com/Uncoil-dev/Uncoil.git
+cd Uncoil
+```
 
 ## Run it (TypeScript)
 
@@ -49,3 +58,8 @@ The Python harness mirrors the TypeScript one: same failure modes, same weighted
 - As part of a pre-release check alongside `test:regions` and `test:sdk:ts`/`test:sdk:python`, when the deployment touches orchestration or retry logic.
 
 This is a local/CI harness, not a hosted feature — runs are not persisted to the dashboard. Point `--base-url` at a non-production endpoint; iterations make real HTTP calls and can incur provider cost under the `success` failure mode.
+
+## Next steps
+
+- [Track cost](/docs/costs) to see what your runs spend once the cost ceilings are in place.
+- [Set up alerts](/docs/alerts) so you hear when failed runs or cost go over a limit in production.
