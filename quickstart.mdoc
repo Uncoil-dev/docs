@@ -73,7 +73,15 @@ Replace `searchDocs` and `callModel` with your own functions. If you already use
 
 ## 4. Verify the result
 
-Open the project dashboard and select the newest run. A healthy first trace has:
+First run the setup check from the folder where your agent runs. It checks your API key, region and network, then sends one test trace.
+
+```bash
+npx @uncoil.dev/sdk doctor
+```
+
+In Python, run `uncoil-doctor` (or `python -m uncoil.doctor`) instead. A passing check marks each line with ✓ and ends with `All good. Your setup is ready to send traces.` If a check fails, it stops there and prints a `Fix:` line. See [CLI workflows](/docs/cli) for every check and option.
+
+Then open the project dashboard and select the newest run. You will also see the test trace, named "Uncoil setup check". A healthy first trace has:
 
 - a root run named after your agent,
 - one child span per `span` you recorded, in the order they ran,
