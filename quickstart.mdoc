@@ -33,7 +33,7 @@ Keep the key in a server-side environment variable. The SDK reads `UNCOIL_API_KE
 export UNCOIL_API_KEY=uncoil_sk_live_...
 ```
 
-> Never put a project API key in browser code. If the variable is missing, the TypeScript SDK prints a `UNCOIL_API_KEY is not set` warning and records nothing, and the Python SDK raises a `ValueError` when the client is created.
+> Never put a project API key in browser code. If the variable is missing, the TypeScript SDK prints the warning `Uncoil Warning: No Uncoil API key was found, so nothing will be recorded.` and records nothing. The Python SDK raises an `UncoilError` (a `ValueError`) with `No Uncoil API key was found.` when the client is created. Both messages go on to say how to pass or set the key.
 
 ## 3. Wrap one run
 
