@@ -129,3 +129,9 @@ The callback receives the provider, model, input and output tokens, and the raw 
 Use either a framework's model callbacks or a provider wrapper for each model call, not both. Using both records the same call twice.
 
 Stream conversion helpers such as `.tee()` and `.toReadableStream()` are passed through and are not observed. Iterate the wrapped stream itself to capture complete usage and time to first token. When you stop a stream early, close it so the partial output is recorded once.
+
+## Next steps
+
+- [Check your setup](/docs/cli) with the `doctor` command, which sends one test trace.
+- [Troubleshoot your first trace](/docs/troubleshooting) if a call is missing, shows zero cost or appears twice.
+- [Instrument tool calls](/docs/tool-calls) so the tools your agent runs show up next to the model calls.
