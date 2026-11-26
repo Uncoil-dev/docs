@@ -74,7 +74,7 @@ The agent may ask permission to run `npx`, install packages, and edit files. App
 
 - **No link appears.** Run `npx @uncoil.dev/sdk login --no-browser` yourself and open the printed link on any device. The code expires after 10 minutes; run the command again for a new one.
 - **Traces land in the wrong project.** Run `npx @uncoil.dev/sdk doctor`. It names the project the key belongs to. Run `npx @uncoil.dev/sdk login` in this folder to switch.
-- **`UNCOIL_API_KEY is not set`.** Plain Node and Python do not read `.env.local` by themselves. Use `node --env-file=.env.local app.js` or python-dotenv.
+- **`No Uncoil API key was found`.** The TypeScript SDK prints this as a warning and records nothing; the Python SDK raises it as an error when the client is created. Plain Node and Python do not read `.env.local` by themselves. Use `node --env-file=.env.local app.js` or python-dotenv.
 - **Nothing shows up after a minute.** Follow [Troubleshoot your first trace](/docs/troubleshooting).
 
 Using Claude Code? The [Uncoil plugin](/docs/claude-plugin) installs these steps as skills, so you do not need to paste the prompt.
