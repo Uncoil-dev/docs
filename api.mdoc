@@ -8,13 +8,86 @@ order: 4
 
 # Ingestion API
 
-Use the ingestion endpoint when an SDK or OpenTelemetry exporter is not a fit. Authenticate every request with a project API key and send timestamps in ISO 8601 format.
+Use the ingestion endpoint when an SDK or OpenTelemetry exporter is not a fit. Send one span per request as a JSON object, authenticated with a project API key.
 
 ```bash
 curl -X POST https://eu.cloud.uncoil.dev/api/ingest \
   -H "Authorization: Bearer uncoil_sk_live_..." \
   -H "Content-Type: application/json" \
-  -d '{"spanId":"span_123","runId":"run_123","spanType":"llm","createdAt":"2026-01-01T12:00:00Z","latencyMs":420}'
+  -d '{"spanId":"span_123","runId":"run_123","spanType":"llm_call","createdAt":"2026-01-01T12:00:00Z","latencyMs":420,"input":"What is our refund policy?","output":"Refunds are accepted within 30 days.","modelId":"your-model-id","inputTokens":12,"outputTokens":9}'
 ```
 
-For existing telemetry pipelines, send OTLP HTTP JSON to `/api/otel`. API keys belong on the server and should be rotated through the project settings surface.
+Send to the host of the key's region: `https://eu.cloud.uncoil.dev` or `https://us.cloud.uncoil.dev`. API keys belong on the server and should be rotated through the project settings surface.
+
+## Required fields
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `spanId` | string | Unique id for this span. |
+| `runId` | string | Groups spans into one trace. |
+| `spanType` | string | What the span is. See span types below. |
+| `createdAt` | string | ISO 8601 timestamp. |
+| `latencyMs` | number | Zero or more. |
+| `input`, `output` or `attachments` | any | At least one of the three must be present. `attachments` must be an array. |
+
+## Optional fields
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `parentSpanId` | string | Nests this span under another span in the same run. |
+| `traceName` | string | Name shown for the trace in the dashboard. |
+| `modelId` | string | Model that handled an LLM call. |
+| `toolName` | string | Tool that a tool call ran. |
+| `inputTokens`, `outputTokens` | number | Zero or more. |
+| `costUsd` | number | Cost of the step. When it is missing and tokens are sent, Uncoil prices the step from the project's model prices. |
+| `ttftMs`, `retryCount` | number | Time to first token and retry count. Zero or more. |
+| `sessionId`, `endUserId` | string | Group traces by conversation or customer. |
+| `environment`, `release` | string | Compare runs across deployments. |
+| `tags` | string array | Labels for filtering. |
+| `metadata` | object | Any other keys. Must be an object, not an array. |
+| `errorType`, `errorMessage`, `stackTrace` | string | Details of a failure. |
+| `timedOut` | boolean | Marks a step that hit a timeout. `timeoutMs` (number) records the limit. |
+| `isStreamChunk`, `streamFinal` | boolean | Mark streamed pieces. `streamSequence` (number) orders them. |
+| `payloadFormat` | string | Format of `input` and `output`. Defaults to `json`. |
+| `promptVersionId` | string | Links the trace to a deployed prompt version. See [Prompt deployment](/docs/prompts). |
+
+A field with the wrong type is refused with `422` and a message such as `inputTokens must be a non-negative number`. When `inputTokens`, `outputTokens`, `ttftMs`, `retryCount`, `errorType` or `errorMessage` are missing at the top level, Uncoil reads them from `metadata` instead.
+
+Inputs, outputs, attachments and metadata pass through the project's redaction rules before they are stored, unless redaction is turned off. See [Redaction](/docs/redaction).
+
+## Span types
+
+`spanType` accepts any string. The SDKs send these:
+
+- `llm_call` and `tool_call` for model and tool calls.
+- `decision` for a recorded decision.
+- `agent`, `llm`, `tool`, `retrieval` and `span` for steps recorded with `span` or `observe`.
+- `run_end` to mark the run as completed, or `error` to mark it as failed.
+
+Runs with neither `run_end` nor `error` show as running.
+
+## Limits
+
+- **One span per request.** The endpoint does not take batches. To send many spans in one request, use OTLP HTTP JSON at `/api/otel`. See [Integrations](/docs/integrations).
+- **Request size:** up to 1 MB. Larger bodies are refused with `413`.
+- **Free plan span size:** spans over 256 KB are trimmed, not refused. Input and output keep up to 64 KB of text each, and a note marks where the text was cut.
+- **Rate:** Free projects can send 300 spans per minute. Paid projects can send 6,000 per minute.
+- **Volume:** Free projects can send 2,000 spans per day. Every plan has a monthly span limit. See [Plans and limits](/docs/plans-and-limits).
+
+## Responses
+
+Errors are JSON with an `error` message, and some include a `code`.
+
+| Status | Meaning | What to do |
+| --- | --- | --- |
+| `202` | Accepted. The body is `{"ok": true, "spanId": "..."}`. | Nothing. `X-RateLimit-Remaining` shows how many spans are left this minute. |
+| `401` | `Invalid API key`: the header is missing, the key is malformed, or it was deleted. | Send `Authorization: Bearer <key>` with a current key from the API keys page. |
+| `401` with code `wrong_region` | The key belongs to the other region. | Send to the `ingestUrl` in the response. |
+| `403` with code `key_paused` | The key was paused after repeated rate-limit errors. | Create a new key on the API keys page and slow down. |
+| `413` | The body is over 1 MB. | Send smaller inputs and outputs, or split the work into more spans. |
+| `422` | The body is not valid JSON, or a field is missing or has the wrong type. | Fix the field named in `error`. Do not retry unchanged. |
+| `429` with code `rate_limit_exceeded` | Too many spans this minute. | Wait for the `Retry-After` seconds, then retry. |
+| `429` with code `daily_limit_reached` or `plan_limit_reached` | The project reached its daily or monthly span limit. | Wait for `Retry-After`, or upgrade from the `upgradeUrl` in the response. |
+| `503` | Storage or the quota service is briefly unavailable. | Retry the same span. `Retry-After` gives the wait when it is set. |
+
+After a `429` or `503`, retry the same span with the same `spanId`.
