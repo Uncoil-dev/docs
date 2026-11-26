@@ -13,7 +13,7 @@ Most first-trace problems come down to the API key, the region, or where the run
 
 ## The run never appears
 
-- **The key is missing.** The TypeScript SDK warns `No Uncoil API key was found, so nothing will be recorded.` (`missing_key`) and records nothing. The Python SDK raises `UncoilError` (a `ValueError`) with the same code when the client is created. Set `UNCOIL_API_KEY` in the environment where the agent actually runs, not just in your shell.
+- **The key is missing.** Both SDKs warn once with `No Uncoil API key was found, so nothing will be recorded.` (`missing_key`), record nothing, and keep your app running: traced functions still run and return as usual. Set `UNCOIL_API_KEY` in the environment where the agent actually runs, not just in your shell.
 - **The key and region disagree.** A key belongs to the EU or US region. If the configured region does not match, the client refuses to start with `Uncoil API key region mismatch`. Set `region` (or the `UNCOIL_REGION` variable) to the region your project lives in. Keys without a region marker are treated as EU.
 - **Nothing ran inside a traced function.** `traceAgent` (or `@trace_agent`) creates the run. Calls made outside one are recorded as separate standalone roots, so look for many one-step traces instead of one run.
 - **A request failed quietly.** Telemetry never throws into your agent, so failures show up as an `Uncoil Warning:` line in your logs. See [SDK warning codes](#sdk-warning-codes) below. Check the log output of the process that runs the agent.
@@ -41,7 +41,7 @@ Every problem the SDK finds carries a short `code`. Problems found when the clie
 
 | Code | What happened | Fix |
 | --- | --- | --- |
-| `missing_key` | No API key was found. TypeScript warns and records nothing; Python throws. | Pass the key to the client or set `UNCOIL_API_KEY`. Create a key on the API keys page of your dashboard. |
+| `missing_key` | No API key was found. Both SDKs warn once, record nothing and keep running. | Pass the key to the client or set `UNCOIL_API_KEY`. Create a key on the API keys page of your dashboard. |
 | `odd_key` | The key does not start with `uncoil_sk_`. | Copy the key again from the API keys page, and check that another service's key was not pasted by mistake. |
 | `bad_key` | Uncoil rejected the key (401). | The key is wrong, was revoked, or belongs to another region. Check `UNCOIL_API_KEY` and `UNCOIL_REGION`. |
 | `forbidden` | The key is not allowed to send data (403). | Check that the key belongs to the project you expect and has not been disabled. |
