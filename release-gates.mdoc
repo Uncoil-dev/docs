@@ -11,3 +11,60 @@ order: 22
 A release gate turns an evaluation result into an explicit deployment decision. Define the dataset, evaluator, minimum score or pass rate, and the cost or latency limits that matter for the release.
 
 Run the candidate and baseline against the same examples, record the comparison, and promote only after the gate passes. Link the promoted version back to its evaluation run so a later production regression has an explainable starting point.
+
+## Run a comparison
+
+A comparison lines up two experiments that ran on the same dataset, row by row.
+
+1. Open **Datasets** in the project dashboard and build the dataset you will gate on. Give rows an expected answer where you know the correct one.
+2. Open **Experiments** and choose **New experiment**. Pick the dataset, the prompt, and the version you ship today. Leave the model empty to use the version's own model. This is the baseline.
+3. Create a second experiment on the same dataset with the changed prompt version or model. This is the candidate.
+4. The comparison opens with the newest experiment as the candidate and the one before it as the baseline. When the candidate has no answers yet, a bar says it has not run; choose **Run it now**. Every row of the dataset is answered once.
+5. If the baseline has not run either, use the swap button between **Baseline** and **Candidate**, run it the same way, then swap back.
+
+Creating an experiment does not call a model. Running one needs a prompt version and a model connection in **Project settings**, or a server-wide OpenAI key on a self-hosted install.
+
+Only experiments on the selected dataset can be compared. If a project has more than one dataset with experiments, pick the dataset first.
+
+## Read the comparison
+
+The totals strip shows each number for the baseline, then the candidate, with the change between them:
+
+| Total | What it counts |
+| --- | --- |
+| Matches expected | Share of rows with an expected answer where the run's answer matched it. |
+| Average score | Mean score over rows that have a score. |
+| Average speed | Mean latency over rows that ran without an error. |
+| Cost | Total cost recorded for the run's rows. |
+| Failed rows | Rows where the run returned an error. |
+
+A total shows `–` when no row has a value for it, and the change then reads "no comparison". For matches, score, speed, cost, and failed rows, the change is marked good or bad: more matches and a higher score are better; lower speed, cost, and failed rows are better.
+
+If a row was answered more than once in the same experiment, the latest answer counts.
+
+## How each row is judged
+
+An answer matches the expected answer when both are equal after trimming, collapsing repeated spaces, and ignoring case. An answer with an error never matches.
+
+Each row gets one verdict, checked in this order:
+
+| Verdict | When |
+| --- | --- |
+| Not run | The baseline or the candidate has no answer for the row. |
+| Better or Worse | The row has an expected answer, and only one of the two runs matches it. Better if the candidate matches. |
+| Better or Worse | Only one of the two runs returned an error. Worse if the candidate errored. |
+| Same | Both answers are equal by the same rule as matching, and neither errored. |
+| Changed | Anything else, for example two different answers to a row with no expected answer. |
+
+Use the filter buttons above the table to show only the rows with one verdict, such as **Worse**.
+
+## Decide whether the gate passes
+
+Uncoil shows the evidence; it does not block a release on its own. Write the gate down before you run the candidate, so the result cannot move the goalposts. A gate built from the comparison might read:
+
+- no rows marked **Worse**, or only rows the team has reviewed;
+- **Matches expected** no lower than the baseline;
+- **Failed rows** no higher than the baseline;
+- **Cost** and **Average speed** within the limit set for this release.
+
+Rows marked **Changed** have no expected answer to settle them. Read them before you promote, or add an expected answer to the dataset row so the next comparison can judge it.
