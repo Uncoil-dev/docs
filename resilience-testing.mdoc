@@ -26,7 +26,17 @@ Each iteration picks a failure mode at random from a configurable mix and drives
 
 The harness reports success rate, average latency, and fail-open count per failure mode, so you can confirm `enforce` mode fails closed (or intentionally fails open) exactly where you expect.
 
+The harness ships with the SDK source, not with the published `@uncoil.dev/sdk` or `uncoil-sdk` packages, so run it from a clone of the repository:
+
+```bash
+git clone https://github.com/Uncoil-dev/Uncoil
+cd Uncoil
+npm ci
+```
+
 ## Run it (TypeScript)
+
+From the root of the clone:
 
 ```bash
 npx tsx packages/ts-sdk/harness/chaos.ts --iterations 20 --run-id chaos-smoke
@@ -35,6 +45,8 @@ npx tsx packages/ts-sdk/harness/chaos.ts --iterations 20 --run-id chaos-smoke
 Flags: `--iterations`, `--latency-budget`, `--max-cost-run`, `--max-cost-day`, `--base-url`, `--api-key`, `--run-id`. Defaults target OpenAI with a `gpt-4o` → `claude-sonnet-4` → `gpt-4o-mini` fallback chain and a 40/15/15/15/15 success/timeout/429/500/cost-overrun mix.
 
 ## Run it (Python)
+
+From the root of the clone, with `httpx` installed (`pip install httpx`):
 
 ```bash
 python packages/python-sdk/harness/chaos.py --iterations 20 --run-id chaos-smoke
@@ -49,3 +61,9 @@ The Python harness mirrors the TypeScript one: same failure modes, same weighted
 - As part of a pre-release check alongside `test:regions` and `test:sdk:ts`/`test:sdk:python`, when the deployment touches orchestration or retry logic.
 
 This is a local/CI harness, not a hosted feature — runs are not persisted to the dashboard. Point `--base-url` at a non-production endpoint; iterations make real HTTP calls and can incur provider cost under the `success` failure mode.
+
+## Next steps
+
+- [Costs](/docs/costs): track spend per run and per model.
+- [Alerts](/docs/alerts): get notified when failures or costs spike.
+- [Release gates](/docs/release-gates): set the runtime policy the harness exercises.
