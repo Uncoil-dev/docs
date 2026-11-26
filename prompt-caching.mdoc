@@ -11,3 +11,57 @@ order: 21
 Caching can reduce repeated prompt resolution or provider work, but it must not hide which prompt version a run used. Keep the version identifier on the generation span even when the content comes from a cache.
 
 Measure cache behavior beside quality, cost, and latency. Invalidate or bypass cached content when promoting a new environment label or investigating a suspected prompt regression.
+
+## How the SDKs cache fetched prompts
+
+`getPrompt` (TypeScript) and `get_prompt` (Python) fetch the prompt version labeled for an environment, then keep it in memory on that client. The cache key is the prompt name plus the environment, so `support-agent` in `production` and in `staging` are cached apart.
+
+| | TypeScript | Python |
+| --- | --- | --- |
+| Call | `client.getPrompt(name, environment, options)` | `client.get_prompt(name, environment, cache_ttl_seconds, fallback)` |
+| Default environment | `"production"` | `"production"` |
+| Cache time option | `cacheTtlMs` | `cache_ttl_seconds` |
+| Default cache time | 60,000 ms | 60 seconds |
+| Fallback option | `fallback` | `fallback` |
+
+While a cached entry is fresh, the SDK returns it without a request. After it expires, the next call fetches again and stores the result for the cache time passed on that call. The cache lives only as long as the client object, and each process has its own.
+
+If a fetch fails, the SDK returns the last cached version for that name and environment, even when it has expired. With nothing cached, it returns `fallback` if you passed one, and otherwise raises the error.
+
+```ts
+const deployed = await client.getPrompt("support-agent", "production", { cacheTtlMs: 5 * 60_000 });
+```
+
+```python
+deployed = client.get_prompt("support-agent", "production", cache_ttl_seconds=300)
+```
+
+## Bypass the cache
+
+There is no separate bypass switch. Set the cache time to zero, so a fetched version is never reused:
+
+```ts
+const deployed = await client.getPrompt("support-agent", "staging", { cacheTtlMs: 0 });
+```
+
+```python
+deployed = client.get_prompt("support-agent", "staging", cache_ttl_seconds=0)
+```
+
+The cache time is stored with each entry when it is fetched. An entry already cached with a longer time is still returned until it expires, so pass zero on every call for that prompt, or create a new client, when you need the newest label straight away.
+
+## Keep the version on the step
+
+The SDKs do not add the prompt version to steps for you. Send the version id with the step that used the prompt, whether the content came from the cache or a fresh fetch:
+
+```ts
+const deployed = await client.getPrompt("support-agent", "production");
+await client.ingest({ spanType: "llm", input: question, output, promptVersionId: deployed.version.id });
+```
+
+```python
+deployed = client.get_prompt("support-agent", "production")
+client.ingest(spanType="llm", input=question, output=answer, promptVersionId=deployed["version"]["id"])
+```
+
+Uncoil links the trace to that prompt version, so a run stays traceable to the exact version even when the content was served from the cache.
