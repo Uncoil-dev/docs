@@ -41,7 +41,7 @@ Matching ignores letter case for `email` and `api_key`.
 - Unknown rule names are ignored. If none of the names in a list are known, all five rules apply.
 - You cannot end up with redaction enabled and zero active rules. To send values unmasked, turn the project redaction switch off.
 
-Rules run in order, one after another, so a value can be changed by an earlier rule before a later one is checked. Broad rules such as `phone` and `credit_card` can also match long numeric values such as identifiers, so review a few traces after changing the rule list.
+Rules run one after another in the order shown in the table, whatever order the project's list uses, so a value can be changed by an earlier rule before a later one is checked. The `phone` rule also matches SSNs and card numbers: a match made up only of those gets `[REDACTED_SSN]` or `[REDACTED_CARD]` when those rules are on, and any other match is replaced whole with `[REDACTED_PHONE]`. Broad rules such as `phone` and `credit_card` can also match long numeric values such as identifiers, so review a few traces after changing the rule list.
 
 ### What is redacted
 
