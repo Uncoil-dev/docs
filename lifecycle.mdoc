@@ -10,10 +10,16 @@ order: 7
 
 Uncoil is most useful when the same run can move through the whole improvement loop:
 
-1. Instrument the agent with spans, sessions, costs, and prompt versions.
-2. Inspect timelines, payloads, failures, and quality signals.
-3. Build evaluators and datasets from representative traces.
-4. Compare prompt and model candidates against the same dataset.
-5. Promote only after the release gate passes, then monitor production drift.
+1. [Instrument the agent](/docs/observability) with spans, sessions, costs, and prompt versions.
+2. [Inspect](/docs/trace-anatomy) timelines, payloads, failures, and quality signals.
+3. Build [evaluators](/docs/evaluation) and [datasets](/docs/datasets) from representative traces.
+4. [Compare prompt and model candidates](/docs/release-gates) against the same dataset.
+5. Promote only after the [release gate](/docs/release-gates) passes, then monitor production drift.
 
 Stable trace and project identifiers keep each decision connected to its evidence.
+
+## Next steps
+
+- [Send your first trace](/docs/quickstart) to start the loop.
+- [Read a trace](/docs/trace-anatomy) from its root span down to the failed step.
+- [Build a dataset](/docs/datasets) from the traces you want to test against.
