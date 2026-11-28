@@ -1,13 +1,96 @@
 ---
 slug: public-api
 title: Public API
-description: Read project telemetry and metadata through authenticated HTTP endpoints.
+description: The HTTP endpoints that accept a project API key, with a request example for each.
 section: Connect
 order: 15
 ---
 
 # Public API
 
-Use the API when a service needs to retrieve project data outside the dashboard. Authenticate server-side with a project key, bound every request to the intended project, and request only the fields required by the job.
+These endpoints accept a project API key. Send the key as a bearer token from server-side code only, and call the host for your project's [data region](/docs/data-regions), such as `https://eu.cloud.uncoil.dev`. Most of these endpoints answer a key sent to the wrong region with a `401` that names the right host.
 
-For ingestion, prefer the [Ingestion API](/docs/api). For existing OpenTelemetry pipelines, use [OTLP](/docs/integrations). Keep application-specific exports and dashboard reads separate so a reporting job cannot accidentally become part of the production trace path.
+```bash
+-H "Authorization: Bearer uncoil_sk_live_..."
+```
+
+Dashboard data such as runs, costs and exports is read through the signed-in dashboard, not with a project key.
+
+## Endpoints
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/ingest` | Send one span in Uncoil's native JSON format. |
+| `POST` | `/api/otel` | Send spans as OTLP HTTP JSON (`resourceSpans`). |
+| `POST` | `/api/feedback` | Attach feedback or a named score to a trace. |
+| `GET` | `/api/prompts/{name}` | Fetch the prompt version deployed to an environment. |
+| `POST` | `/api/orchestration/check-cost` | Check a cost increment against the project's cost limits. |
+| `GET` | `/api/sdk/whoami` | Show which project a key belongs to. |
+
+## Send a span
+
+The fields are described in the [Ingestion API](/docs/api).
+
+```bash
+curl -X POST https://eu.cloud.uncoil.dev/api/ingest \
+  -H "Authorization: Bearer uncoil_sk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"spanId":"span_123","runId":"run_123","spanType":"llm","createdAt":"2026-01-01T12:00:00Z","latencyMs":420}'
+```
+
+## Send OTLP spans
+
+Use this from an OpenTelemetry exporter that sends HTTP JSON. See [Integrations](/docs/integrations).
+
+```bash
+curl -X POST https://eu.cloud.uncoil.dev/api/otel \
+  -H "Authorization: Bearer uncoil_sk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"resourceSpans":[...]}'
+```
+
+## Record feedback
+
+`projectId`, `traceId` and `value` are required, and `projectId` must be the project the key belongs to. A number is stored as a star rating, a boolean as a thumb, and a string as text, unless you set `kind`. Add `name` to record a named score. Optional fields: `spanId`, `reason`, `comment`, `endUserId`, `dedupeKey`, `dataType`.
+
+```bash
+curl -X POST https://eu.cloud.uncoil.dev/api/feedback \
+  -H "Authorization: Bearer uncoil_sk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"projectId":"<project id>","traceId":"run_123","value":true,"comment":"Correct answer"}'
+```
+
+Returns `201` with `{"ok":true,"feedbackId":"..."}`.
+
+## Fetch a prompt
+
+Returns the version deployed to `environment`, which defaults to `production`. The response holds `prompt` (id, name, description, type) and `version` (id, version, content, variables, labels, model, createdAt). It returns `404` when the prompt has no version deployed there.
+
+```bash
+curl "https://eu.cloud.uncoil.dev/api/prompts/support-reply?environment=staging" \
+  -H "Authorization: Bearer uncoil_sk_live_..."
+```
+
+## Check a cost limit
+
+Send the run id and the cost you are about to add, in US dollars. The increment is counted against the project's per-run and per-day limits. The response is `{"allowed":true}`, or `{"allowed":false,"reason":"maxCostPerRun","currentCost":...,"ceiling":...}` when a limit would be passed (`maxCostPerDay` for the daily limit). With no limits set it returns `{"allowed":true,"reason":"no_policy"}`.
+
+```bash
+curl -X POST https://eu.cloud.uncoil.dev/api/orchestration/check-cost \
+  -H "Authorization: Bearer uncoil_sk_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"runId":"run_123","incrementUsd":0.02}'
+```
+
+## Check a key
+
+Returns `projectId`, `projectName` and `planTier` for the key. It allows 30 requests a minute per IP address.
+
+```bash
+curl https://eu.cloud.uncoil.dev/api/sdk/whoami \
+  -H "Authorization: Bearer uncoil_sk_live_..."
+```
+
+## Errors
+
+A missing or unknown key returns `401`, except on `/api/prompts/{name}`, which returns `404` for a key it does not recognise. A malformed JSON body or missing required field returns `422`. Keys belong on the server; rotate them from the project's API keys page.
