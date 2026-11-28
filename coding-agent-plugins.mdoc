@@ -36,6 +36,12 @@ Set your key, restart Codex and trust the Uncoil `Stop` hook in `/hooks`. Nothin
 export UNCOIL_API_KEY="uncoil_sk_live_..."
 ```
 
+On Windows PowerShell, set the key with:
+
+```powershell
+$env:UNCOIL_API_KEY="uncoil_sk_live_..."
+```
+
 You can also save settings in `~/.codex/uncoil.json` or `<project>/.codex/uncoil.json`.
 
 ## OpenCode
@@ -46,6 +52,12 @@ Copy one file into the plugins folder, then set your key and restart OpenCode:
 mkdir -p ~/.config/opencode/plugins
 curl -fsSL https://raw.githubusercontent.com/Uncoil-dev/skill/main/opencode/uncoil.js -o ~/.config/opencode/plugins/uncoil.js
 export UNCOIL_API_KEY="uncoil_sk_live_..."
+```
+
+On Windows PowerShell, set the key with:
+
+```powershell
+$env:UNCOIL_API_KEY="uncoil_sk_live_..."
 ```
 
 Replies are sent when a session goes idle. The plugin works with OpenCode 1.x plugins.
