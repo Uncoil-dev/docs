@@ -56,3 +56,9 @@ Each event preserves its status, timing, parent relationship, metadata, and erro
 ## Data boundaries
 
 The adapter sends event metadata and artifact references by default. It does not upload screenshot bytes, request bodies, or arbitrary test attachments. Review the existing project redaction and retention settings before adding sensitive values to event metadata.
+
+## Next steps
+
+- [Read the trace](/docs/trace-anatomy) to follow a test run from its root span down to the failed step.
+- [Set up redaction](/docs/redaction) before you add sensitive values to event metadata.
+- [Troubleshoot your first trace](/docs/troubleshooting) if the test run does not show up.
