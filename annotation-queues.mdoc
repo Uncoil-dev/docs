@@ -1,13 +1,51 @@
 ---
 slug: annotation-queues
 title: Human review queues
-description: Route uncertain or high-value traces to reviewers for consistent feedback.
+description: Put traces in a review line, label each one, and see how often reviewers agree.
 section: Evaluate
 order: 20
 ---
 
 # Human review queues
 
-Use human review when an automated evaluator cannot reliably judge the behavior. Define the question reviewers answer, the allowed score range, and the evidence they should inspect before assigning work.
+Use human review when an automated evaluator cannot reliably judge the behavior. Each project has one review line. Anyone with access to the project can add traces to it and review them. Open it from **Evaluation → Human annotation** in the dashboard sidebar.
 
-Keep review criteria stable across a comparison. Store the reviewer score with the trace and use disagreements to improve the rubric or create new evaluator examples.
+## Add traces to the line
+
+A trace can join the line in three ways:
+
+1. **By hand.** Paste a trace id into **Add a trace to review** on the Human annotation page and press **Add**.
+2. **In bulk.** In project **Settings → Batch Actions**, choose **Send to review** to queue every matching run. Runs already in the line are skipped.
+3. **From an evaluator.** When an [evaluator](/docs/evaluation) result fails or errors, the trace is queued automatically, unless it is already in the line. The evaluator's explanation is kept as the item's notes.
+
+The left panel shows how many items are waiting, yours, with others and done today, and the next six waiting traces in order.
+
+## Review a trace
+
+1. Press **Start reviewing**. You get the oldest waiting trace, and it is marked as yours.
+2. Read the two panels: **What came in** (the input) and **What the agent answered** (the output, plus any error). The header shows the model, step count, latency and cost, and links to the full trace in Tracing.
+3. Pick a label and, if useful, add a note on why.
+4. Press **Save and next**, or Enter. The next waiting trace opens straight away.
+
+To skip a trace, press **Give back**. It goes back to the end of the line for someone else. You can only give back an item you are reviewing.
+
+## Labels
+
+Reviewers pick one of four labels, with keyboard shortcuts:
+
+| Key | Label |
+| --- | --- |
+| `1` | Good |
+| `2` | Needs work |
+| `3` | Bad |
+| `4` | Unsure |
+
+Notes are optional free text, up to 2,000 characters. Ctrl+Enter (Cmd+Enter on Mac) saves from inside the notes box.
+
+## Where results go
+
+A saved review marks the item as completed and stores the label, the notes, the reviewer and the time on it, linked to the trace by its id. The **Reviewed** tab lists completed items with their label, notes and a link to the trace in Tracing.
+
+When the same trace has been labelled more than once, the page shows how often the labels match: for example, "Reviewers agree on 80% of 5 compared pairs." Use disagreements to sharpen what "good" means, or turn reviewed traces into [dataset](/docs/datasets) examples.
+
+Review labels stay on the review item. For scores you send from your own code or end users, see [Feedback and scores](/docs/feedback-and-scores).
